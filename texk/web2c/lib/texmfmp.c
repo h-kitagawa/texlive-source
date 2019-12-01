@@ -120,6 +120,8 @@
 #endif
 #if !defined(IS_pTeX)
 # define IS_pTeX 0
+#else
+#include <minilzo.h>
 #endif
 #if !defined(IS_upTeX)
 # define IS_upTeX 0
@@ -2780,10 +2782,61 @@ swap_items (char *p, int nitems, int size)
 }
 #endif /* not WORDS_BIGENDIAN and not NO_DUMP_SHARE */
 
-
 /* Here we write NITEMS items, each item being ITEM_SIZE bytes long.
    The pointer to the stuff to write is P, and we write to the file
    OUT_FILE.  */
+
+#if IS_pTeX
+lzo_bytep fmtbuffer = NULL; /* non-NULL iff dumping */
+lzo_uint fmtbuffer_len = 4194304L; /* length of fmtbuffer */
+lzo_uint fmt_len = 0; /* dump: format size in bytes, undump: remaining bytes */
+lzo_bytep fmtcursor;
+inline int write_fmtbuffer(const void *p, int item_size, int nitems)
+{
+  if (fmtbuffer==NULL)
+    if ((fmtbuffer=xmalloc(fmtbuffer_len))==NULL) return -1;
+  if (fmt_len + item_size * nitems >= fmtbuffer_len)
+    while (fmt_len + item_size * nitems < fmtbuffer_len) {
+      fmtbuffer_len += 1048576; 
+      if ((fmtbuffer=realloc(fmtbuffer, fmtbuffer_len))==NULL) return -1;
+     };
+  memcpy(fmtbuffer+fmt_len, p, item_size*nitems);
+  fmt_len += item_size * nitems; return nitems;
+}
+inline int read_fmtbuffer(void *p, int bytes, FILE *fp)
+{
+  if (fmtbuffer==NULL) {
+    /* decompress */
+    lzo_uint l; lzo_bytep in = NULL;
+    unsigned char ah, al; int r;
+    fseek(fp, 0, SEEK_END); l = ftell(fp) - 2; fseek(fp, 0, SEEK_SET);
+    if (!fread(&ah, 1, 1, fp)) 
+      { fprintf(stderr, "! Could not undump 1 byte integer\n"); uexit(1); }
+    else if (!fread(&al, 1, 1, fp)) 
+      { fprintf(stderr, "! Could not undump 1 byte integer\n"); uexit(1); }
+    fmt_len = (((lzo_uint)ah)*256+al) * 1048576;
+    fmtbuffer = xmalloc(fmt_len);
+    in = xmalloc(l); fread(in, 1, l, fp); aclose(fp);
+
+    if (lzo_init() != LZO_E_OK) {
+      fprintf(stderr, "! lzo_init() failed.\n");
+      uexit(1);
+    }
+    r = lzo1x_decompress_safe(in, l, fmtbuffer, &fmt_len, NULL);
+    if (r != LZO_E_OK) {
+      /* this should NEVER happen */
+      fprintf(stderr, "! decompression of format file failed: %d\n", r);
+      uexit(1);
+    }
+   fprintf(stderr, "DECOMPRESSED %8lu -> %8lu\n", l+2, fmt_len); 
+   free(in); fp=NULL; fmtcursor = fmtbuffer; fmtbuffer_len=0; 
+  }
+  if (bytes <= fmt_len) {
+    memcpy(p, fmtcursor, bytes); fmtcursor += bytes;
+    fmt_len -= bytes; return bytes;
+  } else return -1;
+}
+#endif
 
 void
 #ifdef XeTeX
@@ -2799,7 +2852,11 @@ do_dump (char *p, int item_size, int nitems,  FILE *out_file)
 #ifdef XeTeX
   if (gzwrite (out_file, p, item_size * nitems) != item_size * nitems)
 #else
+#if IS_pTeX
+  if (write_fmtbuffer (p, item_size, nitems) != nitems)
+#else
   if (fwrite (p, item_size, nitems, out_file) != nitems)
+#endif
 #endif
     {
       fprintf (stderr, "! Could not write %d %d-byte item(s) to %s.\n",
@@ -2827,7 +2884,11 @@ do_undump (char *p, int item_size, int nitems, FILE *in_file)
 #ifdef XeTeX
   if (gzread (in_file, p, item_size * nitems) != item_size * nitems)
 #else
+#ifdef IS_pTeX
+  if (read_fmtbuffer (p, item_size * nitems, in_file) != item_size * nitems)
+#else
   if (fread (p, item_size, nitems, in_file) != (size_t) nitems)
+#endif
 #endif
     FATAL3 ("Could not undump %d %d-byte item(s) from %s",
             nitems, item_size, nameoffile+1);
@@ -3945,3 +4006,39 @@ paintrow (screenrow row, pixelcolor init_color,
     (*mfwp->mfwsw_paintrow) (row, init_color, transition_vector, vector_size);
 }
 #endif /* MF */
+
+#if IS_pTeX
+void wclose(FILE *f) {
+  lzo_uint new_len;
+  int r; 
+  lzo_bytep out = NULL;
+  lzo_voidp wrkmem = NULL;
+  if (f==NULL) { aclose(f); return;} /* not dumping */
+  if (fmtbuffer_len==0) { return;}   /* undumping */
+  if (lzo_init() != LZO_E_OK) {
+    fprintf(stderr, "! lzo_init() failed.\n");
+    uexit(1);
+  }
+  fseek(f, 0, SEEK_SET);
+
+  /* compress */
+  wrkmem = (lzo_voidp) xmalloc(LZO1X_1_MEM_COMPRESS);
+  out = (lzo_bytep) xmalloc(fmt_len + fmt_len / 16 + 64 + 3);
+  r = lzo1x_1_compress(fmtbuffer, fmt_len, out, &new_len, wrkmem);
+  if (r != LZO_E_OK) {
+    /* this should NEVER happen */
+    fprintf(stderr, "! compression of format file failed: %d\n", r);
+    uexit(1);
+  }
+
+  /* write */
+  unsigned int a = (fmt_len/1048576) + 1;
+  unsigned char ah= a/256, al = a%256;
+  fwrite(&ah, 1, sizeof(unsigned char), f);
+  fwrite(&al, 1, sizeof(unsigned char), f);
+  fwrite(out, 1, new_len, f); aclose(f);
+
+  fprintf(stderr, "COMPRESSED %8lu -> %8lu\n", fmt_len, new_len+2); 
+  free(wrkmem); free(out); free(fmtbuffer);
+}
+#endif

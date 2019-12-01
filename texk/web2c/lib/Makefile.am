@@ -37,7 +37,7 @@ lib_a_SOURCES = \
 
 ## Replacements for pTeX.
 ##
-libp_a_CPPFLAGS = -DPTEX $(PTEXENC_INCLUDES) $(AM_CPPFLAGS)
+libp_a_CPPFLAGS = -DPTEX $(PTEXENC_INCLUDES) $(AM_CPPFLAGS) -I
 libp_a_SOURCES = \
 	openclose.c \
 	printversion.c
