@@ -121,7 +121,7 @@
 #if !defined(IS_pTeX)
 # define IS_pTeX 0
 #else
-#include <minilzo.h>
+#include <lz4hc.h>
 #endif
 #if !defined(IS_upTeX)
 # define IS_upTeX 0
@@ -2787,10 +2787,10 @@ swap_items (char *p, int nitems, int size)
    OUT_FILE.  */
 
 #if IS_pTeX
-lzo_bytep fmtbuffer = NULL; /* non-NULL iff dumping */
-lzo_uint fmtbuffer_len = 4194304L; /* length of fmtbuffer */
-lzo_uint fmt_len = 0; /* dump: format size in bytes, undump: remaining bytes */
-lzo_bytep fmtcursor;
+char *fmtbuffer = NULL; /* non-NULL iff dumping */
+int fmtbuffer_len = 4194304L; /* length of fmtbuffer */
+int fmt_len = 0; /* dump: format size in bytes, undump: remaining bytes */
+unsigned char *fmtcursor;
 inline int write_fmtbuffer(const void *p, int item_size, int nitems)
 {
   if (fmtbuffer==NULL)
@@ -2807,34 +2807,57 @@ inline int read_fmtbuffer(void *p, int bytes, FILE *fp)
 {
   if (fmtbuffer==NULL) {
     /* decompress */
-    lzo_uint l; lzo_bytep in = NULL;
+    int l; char *in = NULL;
     unsigned char ah, al; int r;
     fseek(fp, 0, SEEK_END); l = ftell(fp) - 2; fseek(fp, 0, SEEK_SET);
     if (!fread(&ah, 1, 1, fp)) 
       { fprintf(stderr, "! Could not undump 1 byte integer\n"); uexit(1); }
     else if (!fread(&al, 1, 1, fp)) 
       { fprintf(stderr, "! Could not undump 1 byte integer\n"); uexit(1); }
-    fmt_len = (((lzo_uint)ah)*256+al) * 1048576;
+    fmt_len = (((unsigned int)ah)*256+al) * 1048576;
     fmtbuffer = xmalloc(fmt_len);
     in = xmalloc(l); fread(in, 1, l, fp); aclose(fp);
 
-    if (lzo_init() != LZO_E_OK) {
-      fprintf(stderr, "! lzo_init() failed.\n");
-      uexit(1);
-    }
-    r = lzo1x_decompress_safe(in, l, fmtbuffer, &fmt_len, NULL);
-    if (r != LZO_E_OK) {
+    fmt_len = LZ4_decompress_safe(in, fmtbuffer, l, fmt_len);
+    if (fmt_len < 0) {
       /* this should NEVER happen */
       fprintf(stderr, "! decompression of format file failed: %d\n", r);
-      uexit(1);
+      free(in); free(fmtbuffer); uexit(1);
     }
-   fprintf(stderr, "DECOMPRESSED %8lu -> %8lu\n", l+2, fmt_len); 
-   free(in); fp=NULL; fmtcursor = fmtbuffer; fmtbuffer_len=0; 
+   /* fprintf(stderr, "DECOMPRESSED %10d -> %10d\n", l+2, fmt_len); */
+   free(in); fp=NULL; fmtcursor = (unsigned char *)fmtbuffer; fmtbuffer_len = 0; 
   }
   if (bytes <= fmt_len) {
     memcpy(p, fmtcursor, bytes); fmtcursor += bytes;
     fmt_len -= bytes; return bytes;
   } else return -1;
+}
+void wclose(FILE *f) {
+  int new_len;
+  int r = LZ4_compressBound(fmt_len);
+  char *out = NULL;
+  if (f==NULL) { aclose(f); return;} /* not dumping */
+  if (fmtbuffer_len==0) { return;}   /* undumping */
+  fseek(f, 0, SEEK_SET);
+
+  /* compress */
+  out = (char *) xmalloc(r);
+  new_len = LZ4_compress_HC(fmtbuffer, out, fmt_len, r, LZ4HC_CLEVEL_DEFAULT);
+  if (new_len == 0) {
+    /* this should NEVER happen */
+    fprintf(stderr, "! compression of format file failed: %d\n", r);
+    free(out); free(fmtbuffer); uexit(1);
+  }
+
+  /* write */
+  unsigned int a = (fmt_len/1048576) + 1;
+  unsigned char ah= a/256, al = a%256;
+  fwrite(&ah, 1, sizeof(unsigned char), f);
+  fwrite(&al, 1, sizeof(unsigned char), f);
+  fwrite(out, 1, new_len, f); aclose(f);
+
+  /* fprintf(stderr, "COMPRESSED %10d -> %10d\n", fmt_len, new_len+2); */
+  free(out); free(fmtbuffer);
 }
 #endif
 
@@ -2884,7 +2907,7 @@ do_undump (char *p, int item_size, int nitems, FILE *in_file)
 #ifdef XeTeX
   if (gzread (in_file, p, item_size * nitems) != item_size * nitems)
 #else
-#ifdef IS_pTeX
+#if IS_pTeX
   if (read_fmtbuffer (p, item_size * nitems, in_file) != item_size * nitems)
 #else
   if (fread (p, item_size, nitems, in_file) != (size_t) nitems)
@@ -4007,38 +4030,3 @@ paintrow (screenrow row, pixelcolor init_color,
 }
 #endif /* MF */
 
-#if IS_pTeX
-void wclose(FILE *f) {
-  lzo_uint new_len;
-  int r; 
-  lzo_bytep out = NULL;
-  lzo_voidp wrkmem = NULL;
-  if (f==NULL) { aclose(f); return;} /* not dumping */
-  if (fmtbuffer_len==0) { return;}   /* undumping */
-  if (lzo_init() != LZO_E_OK) {
-    fprintf(stderr, "! lzo_init() failed.\n");
-    uexit(1);
-  }
-  fseek(f, 0, SEEK_SET);
-
-  /* compress */
-  wrkmem = (lzo_voidp) xmalloc(LZO1X_1_MEM_COMPRESS);
-  out = (lzo_bytep) xmalloc(fmt_len + fmt_len / 16 + 64 + 3);
-  r = lzo1x_1_compress(fmtbuffer, fmt_len, out, &new_len, wrkmem);
-  if (r != LZO_E_OK) {
-    /* this should NEVER happen */
-    fprintf(stderr, "! compression of format file failed: %d\n", r);
-    uexit(1);
-  }
-
-  /* write */
-  unsigned int a = (fmt_len/1048576) + 1;
-  unsigned char ah= a/256, al = a%256;
-  fwrite(&ah, 1, sizeof(unsigned char), f);
-  fwrite(&al, 1, sizeof(unsigned char), f);
-  fwrite(out, 1, new_len, f); aclose(f);
-
-  fprintf(stderr, "COMPRESSED %8lu -> %8lu\n", fmt_len, new_len+2); 
-  free(wrkmem); free(out); free(fmtbuffer);
-}
-#endif

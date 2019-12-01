@@ -705,6 +705,10 @@ LIBPNG_RULE
 LIBPNG_DEPEND
 LIBPNG_LIBS
 LIBPNG_INCLUDES
+LZ4_RULE
+LZ4_DEPEND
+LZ4_LIBS
+LZ4_INCLUDES
 LUAJIT_RULE
 LUAJIT_DEPEND
 LUAJIT_LIBS
@@ -18686,6 +18690,7 @@ fi
 
 test "x$enable_web2c:$enable_ptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-eptex was given.
 if test "${enable_eptex+set}" = set; then :
@@ -18705,6 +18710,7 @@ fi
 
 test "x$enable_web2c:$enable_eptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-uptex was given.
 if test "${enable_uptex+set}" = set; then :
@@ -18724,6 +18730,7 @@ fi
 
 test "x$enable_web2c:$enable_uptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-euptex was given.
 if test "${enable_euptex+set}" = set; then :
@@ -18743,6 +18750,7 @@ fi
 
 test "x$enable_web2c:$enable_euptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-aleph was given.
 if test "${enable_aleph+set}" = set; then :
@@ -25131,6 +25139,19 @@ rm -f core conftest.err conftest.$ac_objext \
   ;;
 esac
 echo 'tldbg:KPSE_LUAJIT_FLAGS done.' >&5
+
+echo 'tldbg:KPSE_LZ4_FLAGS called.' >&5
+##tldbg _KPSE_LIB_FLAGS: Setup lz4 (-llz4) flags.
+echo 'tldbg:_KPSE_LIB_FLAGS called: libdir=lz4, libname=lz4, options=tree, tlincl=-IBLD/libs/lz4/lz4-src/lib, tllib=BLD/libs/lz4/liblz4.a, tlextra=, rebuildsrcdeps=, rebuildblddeps=${top_builddir}/../../libs/lz4/lz4-src/lib/lz4.h.' >&5
+##tldbg _KPSE_LIB_FLAGS_TL: lz4 (lz4) tree.
+  LZ4_INCLUDES="-I$kpse_BLD/libs/lz4/lz4-src/lib"
+  LZ4_LIBS="$kpse_BLD/libs/lz4/liblz4.a"
+  LZ4_DEPEND='${top_builddir}/../../libs/lz4/liblz4.a'
+  LZ4_RULE='# Rebuild liblz4
+$(LZ4_DEPEND): ${top_builddir}/../../libs/lz4/lz4-src/lib/lz4.h
+	cd ${top_builddir}/../../libs/lz4 && $(MAKE) $(AM_MAKEFLAGS) rebuild
+${top_builddir}/../../libs/lz4/lz4-src/lib/lz4.h:
+	cd ${top_builddir}/../../libs/lz4 && $(MAKE) $(AM_MAKEFLAGS) rebuild'
 
 ##tldbg _KPSE_LIB_FLAGS: Setup libpng (-lpng) flags.
 echo 'tldbg:_KPSE_LIB_FLAGS called: libdir=libpng, libname=png, options=, tlincl=-IBLD/libs/libpng/include, tllib=BLD/libs/libpng/libpng.a, tlextra=, rebuildsrcdeps=, rebuildblddeps=${top_builddir}/../../libs/libpng/include/png.h.' >&5

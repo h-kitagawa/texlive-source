@@ -133,6 +133,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/web2c-disable.m4 \
 	$(top_srcdir)/../../m4/kpse-lua52-flags.m4 \
 	$(top_srcdir)/../../m4/kpse-lua53-flags.m4 \
 	$(top_srcdir)/../../m4/kpse-luajit-flags.m4 \
+	$(top_srcdir)/../../m4/kpse-lz4-flags.m4 \
 	$(top_srcdir)/../../m4/kpse-macos-framework.m4 \
 	$(top_srcdir)/../../m4/kpse-mpfr-flags.m4 \
 	$(top_srcdir)/../../m4/kpse-pixman-flags.m4 \
@@ -314,6 +315,9 @@ LUAJIT_DEPEND = @LUAJIT_DEPEND@
 LUAJIT_INCLUDES = @LUAJIT_INCLUDES@
 LUAJIT_LDEXTRA = @LUAJIT_LDEXTRA@
 LUAJIT_LIBS = @LUAJIT_LIBS@
+LZ4_DEPEND = @LZ4_DEPEND@
+LZ4_INCLUDES = @LZ4_INCLUDES@
+LZ4_LIBS = @LZ4_LIBS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@

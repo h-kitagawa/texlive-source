@@ -190,6 +190,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/kpse-cairo-flags.m4 \
 	$(top_srcdir)/libs/libpaper/ac/withenable.ac \
 	$(top_srcdir)/libs/luajit/ac/withenable.ac \
 	$(top_srcdir)/libs/lua53/ac/withenable.ac \
+	$(top_srcdir)/libs/lz4/ac/withenable.ac \
 	$(top_srcdir)/libs/zlib/ac/withenable.ac \
 	$(top_srcdir)/texk/ptexenc/ac/withenable.ac \
 	$(top_srcdir)/texk/kpathsea/ac/withenable.ac \
@@ -454,6 +455,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@

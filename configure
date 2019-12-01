@@ -756,6 +756,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1002,6 +1003,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1254,6 +1256,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1391,7 +1402,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1544,6 +1555,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -4180,7 +4192,7 @@ esac ;;
 esac
 
 ## utils/autosp/ac/withenable.ac: configure.ac fragment for TeX Live subdir
-## $Id: withenable.ac 46590 2018-02-10 23:30:32Z karl $
+## $Id$
 ## configure options and TL libraries required for autosp.
 # Check whether --enable-autosp was given.
 if test "${enable_autosp+set}" = set; then :
@@ -4199,7 +4211,7 @@ $as_echo "$as_me: Assuming \`--enable-autosp=$enable_autosp'" >&6;}
 esac
 
 ## utils/autosp/ac/withenable.ac: configure.ac fragment for TeX Live subdir
-## $Id: withenable.ac 46590 2018-02-10 23:30:32Z karl $
+## $Id$
 ## configure options and TL libraries for axodraw2.
 # Check whether --enable-axodraw2 was given.
 if test "${enable_axodraw2+set}" = set; then :
@@ -4379,7 +4391,7 @@ $as_echo "$as_me: Assuming \`--enable-vlna=$enable_vlna'" >&6;}
     ;;
 esac
 
-# $Id: withenable.ac 49993 2019-02-10 19:14:27Z karl $
+# $Id$
 # utils/xindy/ac/withenable.ac: configure.ac fragment for the TeX Live subdirectory utils/xindy/
 ## configure options and TL libraries required for xindy
 # Check whether --enable-xindy was given.
@@ -4493,7 +4505,7 @@ test "x$enable_web2c" = xno || {
   need_zlib=yes
 }
 
-# $Id: web2c.ac 51577 2019-07-08 06:07:11Z lscarso $
+# $Id$
 # texk/web2c/ac/web2c.ac: configure.ac fragment for the TeX Live subdirectory texk/web2c/
 ## configure options for TeX and MF
 
@@ -4567,6 +4579,7 @@ fi
 
 test "x$enable_web2c:$enable_ptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-eptex was given.
 if test "${enable_eptex+set}" = set; then :
@@ -4586,6 +4599,7 @@ fi
 
 test "x$enable_web2c:$enable_eptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-uptex was given.
 if test "${enable_uptex+set}" = set; then :
@@ -4605,6 +4619,7 @@ fi
 
 test "x$enable_web2c:$enable_uptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-euptex was given.
 if test "${enable_euptex+set}" = set; then :
@@ -4624,6 +4639,7 @@ fi
 
 test "x$enable_web2c:$enable_euptex" = xyes:yes && {
   need_ptexenc=yes
+  need_lz4=yes
 }
 # Check whether --enable-aleph was given.
 if test "${enable_aleph+set}" = set; then :
@@ -6383,6 +6399,9 @@ fi
 
 ## libs/lua53/ac/withenable.ac: configure.ac fragment for the TeX Live subdirectory libs/lua53/
 ## configure options and TL libraries required for lua53
+
+## libs/lz4/ac/withenable.ac: configure.ac fragment for the TeX Live subdirectory libs/lz4/
+## configure options and TL libraries required for lz4
 
 ## libs/zlib/ac/withenable.ac: configure.ac fragment for the TeX Live subdirectory libs/zlib/
 ## configure options and TL libraries required for zlib

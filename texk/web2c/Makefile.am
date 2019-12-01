@@ -87,6 +87,8 @@ $(proglib): ${srcdir}/lib/*.c
 @PTEXENC_RULE@
 ## Rebuild libz
 @ZLIB_RULE@
+## Rebuild lz4
+@LZ4_RULE@
 ## Rebuild liblua52
 @LUA52_RULE@
 ## Rebuild liblua53
@@ -260,9 +262,6 @@ include $(srcdir)/synctexdir/am/synctex.am
 
 ## libmd5
 include $(srcdir)/libmd5/am/md5.am
-
-## minilzo
-include $(srcdir)/minilzo/am/minilzo.am
 
 ## Symlinks within $(bindir)
 include $(srcdir)/../../am/bin_links.am
