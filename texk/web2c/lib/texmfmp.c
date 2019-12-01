@@ -2884,7 +2884,7 @@ do_undump (char *p, int item_size, int nitems, FILE *in_file)
 #ifdef XeTeX
   if (gzread (in_file, p, item_size * nitems) != item_size * nitems)
 #else
-#ifdef IS_pTeX
+#if IS_pTeX
   if (read_fmtbuffer (p, item_size * nitems, in_file) != item_size * nitems)
 #else
   if (fread (p, item_size, nitems, in_file) != (size_t) nitems)
