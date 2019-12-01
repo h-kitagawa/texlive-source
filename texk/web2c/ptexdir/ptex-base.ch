@@ -76,8 +76,8 @@
 @y
 @d pTeX_version=3
 @d pTeX_minor_version=8
-@d pTeX_revision==".3"
-@d pTeX_version_string=='-p3.8.3' {current \pTeX\ version}
+@d pTeX_revision==".3-zo"
+@d pTeX_version_string=='-p3.8.3-zo' {current \pTeX\ version}
 @#
 @d pTeX_banner=='This is pTeX, Version 3.14159265',pTeX_version_string
 @d pTeX_banner_k==pTeX_banner

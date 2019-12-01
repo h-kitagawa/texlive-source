@@ -2826,15 +2826,48 @@ inline int read_fmtbuffer(void *p, int bytes, FILE *fp)
     if (r != LZO_E_OK) {
       /* this should NEVER happen */
       fprintf(stderr, "! decompression of format file failed: %d\n", r);
-      uexit(1);
+      free(in); free(fmtbuffer); uexit(1);
     }
-   fprintf(stderr, "DECOMPRESSED %8lu -> %8lu\n", l+2, fmt_len); 
-   free(in); fp=NULL; fmtcursor = fmtbuffer; fmtbuffer_len=0; 
+   /* fprintf(stderr, "DECOMPRESSED %8lu -> %8lu\n", l+2, fmt_len); */
+   free(in); fp=NULL; fmtcursor = fmtbuffer; fmtbuffer_len=0;
   }
   if (bytes <= fmt_len) {
     memcpy(p, fmtcursor, bytes); fmtcursor += bytes;
     fmt_len -= bytes; return bytes;
   } else return -1;
+}
+void wclose(FILE *f) {
+  lzo_uint new_len;
+  int r;
+  lzo_bytep out = NULL;
+  lzo_voidp wrkmem = NULL;
+  if (f==NULL) { aclose(f); return;} /* not dumping */
+  if (fmtbuffer_len==0) { return;}   /* undumping */
+  if (lzo_init() != LZO_E_OK) {
+    fprintf(stderr, "! lzo_init() failed.\n");
+    uexit(1);
+  }
+  fseek(f, 0, SEEK_SET);
+
+  /* compress */
+  wrkmem = (lzo_voidp) xmalloc(LZO1X_1_MEM_COMPRESS);
+  out = (lzo_bytep) xmalloc(fmt_len + fmt_len / 16 + 64 + 3);
+  r = lzo1x_1_compress(fmtbuffer, fmt_len, out, &new_len, wrkmem);
+  if (r != LZO_E_OK) {
+    /* this should NEVER happen */
+    fprintf(stderr, "! compression of format file failed: %d\n", r);
+    free(out); free(fmtbuffer); uexit(1);
+  }
+
+  /* write */
+  unsigned int a = (fmt_len/1048576) + 1;
+  unsigned char ah= a/256, al = a%256;
+  fwrite(&ah, 1, sizeof(unsigned char), f);
+  fwrite(&al, 1, sizeof(unsigned char), f);
+  fwrite(out, 1, new_len, f); aclose(f);
+
+  /* fprintf(stderr, "COMPRESSED %8lu -> %8lu\n", fmt_len, new_len+2); */
+  free(wrkmem); free(out); free(fmtbuffer);
 }
 #endif
 
@@ -4006,39 +4039,3 @@ paintrow (screenrow row, pixelcolor init_color,
     (*mfwp->mfwsw_paintrow) (row, init_color, transition_vector, vector_size);
 }
 #endif /* MF */
-
-#if IS_pTeX
-void wclose(FILE *f) {
-  lzo_uint new_len;
-  int r; 
-  lzo_bytep out = NULL;
-  lzo_voidp wrkmem = NULL;
-  if (f==NULL) { aclose(f); return;} /* not dumping */
-  if (fmtbuffer_len==0) { return;}   /* undumping */
-  if (lzo_init() != LZO_E_OK) {
-    fprintf(stderr, "! lzo_init() failed.\n");
-    uexit(1);
-  }
-  fseek(f, 0, SEEK_SET);
-
-  /* compress */
-  wrkmem = (lzo_voidp) xmalloc(LZO1X_1_MEM_COMPRESS);
-  out = (lzo_bytep) xmalloc(fmt_len + fmt_len / 16 + 64 + 3);
-  r = lzo1x_1_compress(fmtbuffer, fmt_len, out, &new_len, wrkmem);
-  if (r != LZO_E_OK) {
-    /* this should NEVER happen */
-    fprintf(stderr, "! compression of format file failed: %d\n", r);
-    uexit(1);
-  }
-
-  /* write */
-  unsigned int a = (fmt_len/1048576) + 1;
-  unsigned char ah= a/256, al = a%256;
-  fwrite(&ah, 1, sizeof(unsigned char), f);
-  fwrite(&al, 1, sizeof(unsigned char), f);
-  fwrite(out, 1, new_len, f); aclose(f);
-
-  fprintf(stderr, "COMPRESSED %8lu -> %8lu\n", fmt_len, new_len+2); 
-  free(wrkmem); free(out); free(fmtbuffer);
-}
-#endif
