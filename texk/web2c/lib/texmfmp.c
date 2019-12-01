@@ -2842,7 +2842,8 @@ void wclose(FILE *f) {
 
   /* compress */
   out = (char *) xmalloc(r);
-  new_len = LZ4_compress_HC(fmtbuffer, out, fmt_len, r, LZ4HC_CLEVEL_DEFAULT);
+  /* new_len = LZ4_compress_default(fmtbuffer, out, fmt_len, r);*/
+  new_len = LZ4_compress_HC(fmtbuffer, out, fmt_len, r, 5);
   if (new_len == 0) {
     /* this should NEVER happen */
     fprintf(stderr, "! compression of format file failed: %d\n", r);
