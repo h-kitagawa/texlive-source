@@ -1,5 +1,5 @@
 ## $Id: Makefile.am 43567 2017-03-21 17:43:10Z karl $
-## Proxy Makefile.am to build Lua53 for TeX Live.
+## Proxy Makefile.am to build lz4 for TeX Live.
 ##
 ##   Copyright 2019 Hironori Kitagawa
 ##   Copyright 2017 Karl Berry <tex-live@tug.org>

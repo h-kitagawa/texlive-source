@@ -122,6 +122,7 @@
 # define IS_pTeX 0
 #else
 #include <lz4hc.h>
+int fmt_comp_level = 5;
 #endif
 #if !defined(IS_upTeX)
 # define IS_upTeX 0
@@ -1694,6 +1695,9 @@ static struct option long_options[]
       { "efmt",                      1, 0, 0 },
 #endif
       { "cnf-line",                  1, 0, 0 },
+#if IS_pTeX
+      { "comp-level",                1, 0, 0 },
+#endif
       { "help",                      0, 0, 0 },
       { "ini",                       0, &iniversion, 1 },
       { "interaction",               1, 0, 0 },
@@ -1930,8 +1934,9 @@ parse_options (int argc, string *argv)
       if (!set_enc_string (NULL, optarg)) {
         WARNING1 ("Ignoring unknown argument `%s' to --kanji-internal", optarg);
       }
+    } else if (ARGUMENT_IS ("comp-level")) {
+      fmt_comp_level = atoi (optarg);
 #endif
-
     } else if (ARGUMENT_IS ("help")) {
         usagehelp (PROGRAM_HELP, BUG_ADDRESS);
 
@@ -2842,8 +2847,10 @@ void wclose(FILE *f) {
 
   /* compress */
   out = (char *) xmalloc(r);
-  /* new_len = LZ4_compress_default(fmtbuffer, out, fmt_len, r);*/
-  new_len = LZ4_compress_HC(fmtbuffer, out, fmt_len, r, 5);
+  if (fmt_comp_level < LZ4HC_CLEVEL_MIN )
+    new_len = LZ4_compress_default(fmtbuffer, out, fmt_len, r);
+  else
+    new_len = LZ4_compress_HC(fmtbuffer, out, fmt_len, r, fmt_comp_level);
   if (new_len == 0) {
     /* this should NEVER happen */
     fprintf(stderr, "! compression of format file failed: %d\n", r);
