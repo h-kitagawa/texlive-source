@@ -120,14 +120,16 @@
 #endif
 #if !defined(IS_pTeX)
 # define IS_pTeX 0
-#else
-#include <lz4hc.h>
-int fmt_comp_level = 5;
 #endif
 #if !defined(IS_upTeX)
 # define IS_upTeX 0
 #endif
-
+
+#if IS_pTeX || defined(pdfTeX)
+#include <lz4hc.h>
+int fmt_comp_level = 5;
+#endif
+
 #if defined(__SyncTeX__)
 /* 
    SyncTeX file name should be full path in the case where
@@ -1695,7 +1697,7 @@ static struct option long_options[]
       { "efmt",                      1, 0, 0 },
 #endif
       { "cnf-line",                  1, 0, 0 },
-#if IS_pTeX
+#if IS_pTeX || defined(pdfTeX)
       { "comp-level",                1, 0, 0 },
 #endif
       { "help",                      0, 0, 0 },
@@ -1934,6 +1936,8 @@ parse_options (int argc, string *argv)
       if (!set_enc_string (NULL, optarg)) {
         WARNING1 ("Ignoring unknown argument `%s' to --kanji-internal", optarg);
       }
+#endif
+#if IS_pTeX || defined(pdfTeX)
     } else if (ARGUMENT_IS ("comp-level")) {
       fmt_comp_level = atoi (optarg);
 #endif
@@ -2791,7 +2795,7 @@ swap_items (char *p, int nitems, int size)
    The pointer to the stuff to write is P, and we write to the file
    OUT_FILE.  */
 
-#if IS_pTeX
+#if IS_pTeX || defined(pdfTeX)
 char *fmtbuffer = NULL; /* non-NULL iff dumping */
 int fmtbuffer_len = 4194304L; /* length of fmtbuffer */
 int fmt_len = 0; /* dump: format size in bytes, undump: remaining bytes */
@@ -2883,7 +2887,7 @@ do_dump (char *p, int item_size, int nitems,  FILE *out_file)
 #ifdef XeTeX
   if (gzwrite (out_file, p, item_size * nitems) != item_size * nitems)
 #else
-#if IS_pTeX
+#if IS_pTeX || defined(pdfTeX)
   if (write_fmtbuffer (p, item_size, nitems) != nitems)
 #else
   if (fwrite (p, item_size, nitems, out_file) != nitems)
@@ -2915,7 +2919,7 @@ do_undump (char *p, int item_size, int nitems, FILE *in_file)
 #ifdef XeTeX
   if (gzread (in_file, p, item_size * nitems) != item_size * nitems)
 #else
-#if IS_pTeX
+#if IS_pTeX || defined(pdfTeX)
   if (read_fmtbuffer (p, item_size * nitems, in_file) != item_size * nitems)
 #else
   if (fread (p, item_size, nitems, in_file) != (size_t) nitems)

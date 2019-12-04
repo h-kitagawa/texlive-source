@@ -431,6 +431,8 @@ const_string PDFTEXHELP[] = {
     "  If no arguments or options are specified, prompt for input.",
     "",
     "-cnf-line=STRING        parse STRING as a configuration file line",
+    "-comp-level=NUMBER      set lz4 compression level of the format file to",
+    "                          NUMBER (1<=NUMBER<=12, default 5)",
     "-draftmode              switch on draft mode (generates no output PDF)",
     "-enc                    enable encTeX extensions such as \\mubyte",
     "-etex                   enable e-TeX extensions",

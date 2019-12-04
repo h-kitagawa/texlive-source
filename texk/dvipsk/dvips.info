@@ -1,4 +1,4 @@
-This is dvips.info, produced by makeinfo version 6.5 from dvips.texi.
+This is dvips.info, produced by makeinfo version 6.7 from dvips.texi.
 
 This manual documents Dvips version 5.999 (February 2019), a program to
 translate a DVI file into PostScript.  You may freely use, modify and/or
@@ -4709,3 +4709,8 @@ Node: Color specials157947
 Node: Index160076
 
 End Tag Table
+
+
+Local Variables:
+coding: utf-8
+End:

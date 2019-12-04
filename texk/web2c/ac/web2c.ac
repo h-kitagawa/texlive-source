@@ -36,7 +36,7 @@ m4_define([kpse_tex_progs], [dnl
 [[uptex],     [yes], [yes], [upTeX],      [ptexenc lz4]],
 [[euptex],    [yes], [yes], [e-upTeX],    [ptexenc lz4]],
 [[aleph],     [yes], [],    [Aleph],      []],
-[[pdftex],    [yes], [yes], [pdfTeX],     [xpdf libpng]],
+[[pdftex],    [yes], [yes], [pdfTeX],     [xpdf libpng lz4]],
 [[luatex],    [yes], [],    [LuaTeX],     [libpng zziplib lua53]],
 [[luajittex], [yes], [],    [LuaJITTeX],  [libpng zziplib luajit]],
 [[luahbtex],    [yes], [],    [LuaHBTeX],     [libpng zziplib lua53 harfbuzz]],
