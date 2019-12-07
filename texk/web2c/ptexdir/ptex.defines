@@ -32,3 +32,4 @@
 @define procedure dumpkanji ();
 @define procedure initkanji;
 @define procedure undumpkanji ();
+@define type gzFile;

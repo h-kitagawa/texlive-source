@@ -144,5 +144,6 @@ with this program.  If not, see <http://www.gnu.org/licenses/>.
 { functions from pdftex.web (thanks Taco for the trick) }
 @define function autoexpandvf();
 
+@define type gzFile;
 { end of pdftex.defines }
 { vim: set syntax=web : }

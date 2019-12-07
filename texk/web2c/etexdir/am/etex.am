@@ -10,10 +10,11 @@ bin_PROGRAMS += etex
 endif ETEX
 EXTRA_PROGRAMS += etex
 
-etex_CPPFLAGS = $(AM_CPPFLAGS)
+etex_CPPFLAGS = $(AM_CPPFLAGS) $(ZLIB_INCLUDES)
 
 # With --enable-ipc, e-TeX may need to link with -lsocket.
-etex_LDADD = $(LDADD) $(ipc_socketlibs)
+etex_LDADD = $(LDADD) $(ZLIB_LIBS) $(ipc_socketlibs)
+etex_DEPENDENCIES = $(ZLIB_DEPEND)
 
 # e-TeX C sources
 etex_c_h = etexini.c etex0.c etexcoerce.h etexd.h
@@ -26,7 +27,7 @@ $(etex_OBJECTS): $(etex_prereq)
 
 $(etex_c_h): etex-web2c
 	@$(web2c) etex
-etex-web2c: etex.p $(web2c_texmf)
+etex-web2c: etex.p $(web2c_texmf) etexdir/etex.defines
 	@$(web2c) etex
 
 etex-pool.c: etex.pool etexd.h $(makecpool_stamp)
@@ -56,13 +57,14 @@ etex.ch: tie$(EXEEXT) etex.web $(etex_ch_srcs)
 etex_ch_srcs = \
 	etexdir/tex.ch0 \
 	tex.ch \
+	zlib-fmt.ch \
 	enctex.ch \
 	$(etex_ch_synctex) \
 	etexdir/tex.ch1 \
 	etexdir/tex.ech \
 	tex-binpool.ch
 ##
-EXTRA_DIST += $(etex_web_srcs) $(etex_ch_srcs)
+EXTRA_DIST += $(etex_web_srcs) $(etex_ch_srcs) etexdir/etex.defines
 
 DISTCLEANFILES += $(nodist_etex_SOURCES) etex.web etex.ch etex-web2c \
 	etex.p etex.pool etex-tangle

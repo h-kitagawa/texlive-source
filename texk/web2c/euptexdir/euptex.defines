@@ -58,3 +58,4 @@
 @define procedure getfilesize();
 @define procedure getfiledump();
 @define procedure getmd5sum();
+@define type gzFile;
