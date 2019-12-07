@@ -248,6 +248,17 @@ extern void topenin (void);
 #define aclose(f)     close_file_or_pipe(f)
 #endif
 
+/* define FMT_COMPRESS for engines which compress formats, other than XeTeX */
+#if defined(pTeX)||defined(epTeX)||defined(upTeX)||defined(eupTeX)
+#define FMT_COMPRESS 1
+#endif
+#if defined(eTeX)||defined(pdfTeX)
+#define FMT_COMPRESS 1
+#endif
+#ifdef FMT_COMPRESS
+#include <zlib.h>
+#endif
+
 /* `bopenin' (and out) is used only for reading (and writing) .tfm
    files; `wopenin' (and out) only for dump files.  The filenames are
    passed in as a global variable, `nameoffile'.  */
@@ -269,7 +280,11 @@ extern void topenin (void);
 #else
 #define wopenin(f)	open_input (&(f), DUMP_FORMAT, FOPEN_RBIN_MODE)
 #define wopenout	bopenout
+#ifdef FMT_COMPRESS
+void wclose(FILE *f);
+#else
 #define wclose		aclose
+#endif
 #endif
 
 #ifdef XeTeX

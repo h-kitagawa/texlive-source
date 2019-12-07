@@ -10,10 +10,11 @@ bin_PROGRAMS += etex
 endif ETEX
 EXTRA_PROGRAMS += etex
 
-etex_CPPFLAGS = $(AM_CPPFLAGS)
+etex_CPPFLAGS = $(AM_CPPFLAGS) $(ZLIB_INCLUDES)
 
 # With --enable-ipc, e-TeX may need to link with -lsocket.
-etex_LDADD = $(LDADD) $(ipc_socketlibs)
+etex_LDADD = $(LDADD) $(ZLIB_LIBS) $(ipc_socketlibs)
+etex_DEPENDENCIES = $(ZLIB_DEPEND)
 
 # e-TeX C sources
 etex_c_h = etexini.c etex0.c etexcoerce.h etexd.h
