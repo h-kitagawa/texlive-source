@@ -12,8 +12,7 @@ TEXMFCNF=$srcdir/../kpathsea
 TEXINPUTS=xetests:.
 export TEXMFCNF TEXINPUTS
 
-perl $srcdir/tests/fn-generate.perl || exit 128
-mv fn*-utf8.tex xetests/; rm -f fn*.tex
+perl $srcdir/tests/fn-generate.perl xetests/ || exit 128
 
 if [ "$COMSPEC" != "" ]; then
   echo "*** We guess OS is Windows."

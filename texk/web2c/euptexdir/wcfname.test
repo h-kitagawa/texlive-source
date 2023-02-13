@@ -26,8 +26,7 @@ if [ $ret = 1 ]; then
   LC_ALL=$loc; LANGUAGE=$loc; export LC_ALL LANGUAGE
 fi
 
-perl $srcdir/tests/fn-generate.perl || exit 128
-mv fn*.tex euptests/
+perl $srcdir/tests/fn-generate.perl euptests/ || exit 128
 
 # upTeX internal encoding
 fenc="utf8"

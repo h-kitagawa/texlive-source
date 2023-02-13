@@ -11,6 +11,7 @@ use Encode;
 foreach $_ (<DATA>) {
     chomp;
     my ($encname, $fname0, $fname1) = split ' ', $_;
+    $fname0 = $ARGV[0] . $fname0;
 
     my $src = &make_str($encname, $fname0, $fname1);
 
