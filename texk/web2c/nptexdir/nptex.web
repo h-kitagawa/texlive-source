@@ -327,8 +327,8 @@ known as `\eTeX'.
 @d XeTeX_version_string=='-0.999995' {current \XeTeX\ version}
 @#
 @d npTeX_version=0 { \.{\\npTeXversion} }
-@d npTeX_revision==".0000" { \.{\\npTeXrevision} }
-@d npTeX_version_string=='-0.0000' {current \npTeX\ version}
+@d npTeX_revision==".0002" { \.{\\npTeXrevision} }
+@d npTeX_version_string=='-0.0002' {current \npTeX\ version}
 @#
 @d npTeX_banner=='This is npTeX, Version 3.141592653',eTeX_version_string,XeTeX_version_string,npTeX_version_string
   {printed when \npTeX\ starts}
