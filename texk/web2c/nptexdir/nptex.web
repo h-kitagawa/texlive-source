@@ -5823,8 +5823,8 @@ registers.
 @d kansuji_base=cjkx_code_base+number_usvs {table of 10 kansuji mappings}
 @d lc_code_base=kansuji_base+10 {table of |number_usvs| lowercase mappings}
 @d uc_code_base=lc_code_base+number_usvs {table of |number_usvs| uppercase mappings}
-@d sf_code_base=uc_code_base+number_usvs {table of |number_usvs| spacefactor mappings}
-@d math_code_base=sf_code_base+number_usvs {table of |number_usvs| math mode mappings}
+@d xetex_char_class_base=uc_code_base+number_usvs {table of |number_usvs| XeTeX's character classes}
+@d math_code_base=xetex_char_class_base+number_usvs {table of |number_usvs| math mode mappings}
 @d int_base=math_code_base+number_usvs {beginning of region 5}
 @#
 @d par_shape_ptr==equiv(par_shape_loc)
@@ -5847,7 +5847,7 @@ registers.
 @d cjkx_code(#)==equiv(cjkx_code_base+#) { \npTeX }
 @d lc_code(#)==equiv(lc_code_base+#)
 @d uc_code(#)==equiv(uc_code_base+#)
-@d sf_code(#)==equiv(sf_code_base+#)
+@d xetex_char_class(#)==equiv(xetex_char_class_base+#)
 @d math_code(#)==equiv(math_code_base+#)
   {Note: |math_code(c)| is the true math code plus |min_halfword|}
 @d auto_spacing==equiv(auto_spacing_code) { \pTeX }
@@ -5859,11 +5859,13 @@ registers.
 @d post_break_penalty_sa=2
 @d inhibit_xsp_code_sa=3
 @d auto_xsp_code_sa=4
+@d sf_code_sa=5
 
 @d pre_break_penalty(#)==get_int_sa_element(pre_break_penalty_sa*number_usvs+#, 0)
 @d post_break_penalty(#)==get_int_sa_element(post_break_penalty_sa*number_usvs+#, 0)
 @d inhibit_xsp_code(#)==get_int_sa_element(inhibit_xsp_code_sa*number_usvs+#, 3)
 @d auto_xsp_code(#)==get_int_sa_element(auto_xsp_code_sa*number_usvs+#, 0)
+@d sf_code(#)==get_int_sa_element(sf_code_sa*number_usvs+#, 1000)
 
 @<Put each...@>=
 primitive("output",assign_toks,output_routine_loc);
@@ -5940,8 +5942,7 @@ eqtb[auto_spacing_code]:=eqtb[cat_code_base];
 eqtb[auto_xspacing_code]:=eqtb[cat_code_base];
 for k:=cat_code_base+1 to int_base-1 do eqtb[k]:=eqtb[cat_code_base];
 for k:=0 to number_usvs-1 do
-  begin cat_code(k):=other_char; math_code(k):=hi(k); sf_code(k):=1000;
-  cjkx_code(k):=0;
+  begin cat_code(k):=other_char; math_code(k):=hi(k); cjkx_code(k):=0;
   end;
 cat_code(carriage_return):=car_ret; cat_code(" "):=spacer;
 cat_code("\"):=escape; cat_code("%"):=comment;
@@ -5954,7 +5955,7 @@ for k:="A" to "Z" do
   math_code(k):=hi(k + set_family_field(1) + set_class_field(var_fam_class));
   math_code(k+"a"-"A"):=hi(k+"a"-"A" + set_family_field(1) + set_class_field(var_fam_class));@/
   lc_code(k):=k+"a"-"A"; lc_code(k+"a"-"A"):=k+"a"-"A";@/
-  uc_code(k):=k; uc_code(k+"a"-"A"):=k;@/ sf_code(k):=999;
+  uc_code(k):=k; uc_code(k+"a"-"A"):=k;@/
   end;
 kansuji_char(0):=12295; kansuji_char(1):=19968; kansuji_char(2):=20108;
 kansuji_char(3):=19977; kansuji_char(4):=22235; kansuji_char(5):=20116;
@@ -5965,10 +5966,13 @@ kansuji_char(9):=20061;
 @d init_int_sa_element(#)==begin find_sa_element(0,#,true); init_int_sa_element_end
 @d init_int_sa_element_end(#)==gsa_w_def(cur_ptr,#); end
 @d init_auto_xsp_code(#)==init_int_sa_element(auto_xsp_code_sa*number_usvs+#)
+@d init_sf_code(#)==init_int_sa_element(sf_code_sa*number_usvs+#)
 
 @<Initialize parameters which are stored in a sparse tree @>=
 for k:="0" to "9" do init_auto_xsp_code(k)(3);
-for k:="A" to "Z" do begin init_auto_xsp_code(k)(3); init_auto_xsp_code(k+"a"-"A")(3); end;
+for k:="A" to "Z" do begin 
+  init_auto_xsp_code(k)(3); init_auto_xsp_code(k+"a"-"A")(3); init_sf_code(k)(999);
+  end;
 
 @ @<Show equivalent |n|, in region 4@>=
 if (n=par_shape_loc) or ((n>=etex_pen_base) and (n<etex_pens)) then
@@ -6028,10 +6032,7 @@ if n<math_code_base then
   else if n<uc_code_base then
     begin print_esc("lccode"); print_int(n-lc_code_base);
     end
-  else if n<sf_code_base then
-    begin print_esc("uccode"); print_int(n-uc_code_base);
-    end
-  else  begin print_esc("sfcode"); print_int(n-sf_code_base);
+  else begin print_esc("uccode"); print_int(n-uc_code_base);
     end;
   print_char("="); print_int(equiv(n));
   end
@@ -10206,16 +10207,16 @@ case cur_cmd of
 set_kansuji_char: @<Fetch kansuji char code from some table@>;
 def_code: @<Fetch a character code from some table@>;
 sa_def_code: begin scan_usv_num;
-  if m=inhibit_xsp_code_sa then 
-    scanned_result(inhibit_xsp_code(cur_val))(int_val)
-  else
-    scanned_result(get_int_sa_element(m*number_usvs+cur_val,0))(int_val);
+  if m=sf_code_sa then n:=1000
+  else if m=inhibit_xsp_code_sa then n:=3
+  else n:=0;
+  scanned_result(get_int_sa_element(m*number_usvs+cur_val,n))(int_val);
 end;
 XeTeX_def_code:
   begin
     scan_usv_num;
-    if m=sf_code_base then begin
-      scanned_result(ho(sf_code(cur_val) div @"10000))(int_val)
+    if m=xetex_char_class_base then begin
+      scanned_result(xetex_char_class(cur_val))(int_val)
     end
     else if m=math_code_base then begin
       scanned_result(ho(math_code(cur_val)))(int_val)
@@ -10325,9 +10326,7 @@ else if m=del_code_base then begin  {\.\\{delcode}}
     )(int_val);
 end
 else if m=del_code_base+2 then scanned_result(-1)(int_val)
-else if m<sf_code_base then scanned_result(equiv(m+cur_val))(int_val)
-else if m<math_code_base then scanned_result(equiv(m+cur_val) mod @"10000)(int_val)
-  { \.{\\sfcode}. upper half is used in \.{\\XeTeXcharclass} }
+else if m<math_code_base then scanned_result(equiv(m+cur_val))(int_val)
 else scanned_result(eqtb[m+cur_val].int)(int_val);
 end
 
@@ -25624,7 +25623,7 @@ are inside the individual sections.
 @^inner loop@>
 
 @d adjust_space_factor==@t@>@;@/
-  main_s:=sf_code(cur_chr) mod @"10000;
+  main_s:=sf_code(cur_chr);
   if main_s=1000 then space_factor:=1000
   else if main_s<1000 then
     begin if main_s>0 then space_factor:=main_s;
@@ -25635,7 +25634,7 @@ are inside the individual sections.
 @d check_for_inter_char_toks(#)=={check for a spacing token list, goto |#| if found,
                                or |big_switch| in case of the initial letter of a run}
   cur_ptr:=null;
-  space_class:=sf_code(cur_chr) div @"10000;
+  space_class:=xetex_char_class(cur_chr);
 
   if XeTeX_inter_char_tokens_en and space_class <> char_class_ignored then begin {class 4096 = ignored (for combining marks etc)}
     if prev_class = char_class_boundary then begin {boundary}
@@ -30014,9 +30013,9 @@ primitive("lccode",def_code,lc_code_base);
 @!@:lc_code_}{\.{\\lccode} primitive@>
 primitive("uccode",def_code,uc_code_base);
 @!@:uc_code_}{\.{\\uccode} primitive@>
-primitive("sfcode",def_code,sf_code_base);
+primitive("sfcode",sa_def_code,sf_code_sa);
 @!@:sf_code_}{\.{\\sfcode} primitive@>
-primitive("XeTeXcharclass",XeTeX_def_code,sf_code_base);
+primitive("XeTeXcharclass",XeTeX_def_code,xetex_char_class_base);
 @!@:XeTeX_char_class_}{\.{\\XeTeXcharclass} primitive@>
 primitive("delcode",def_code,del_code_base);
 @!@:del_code_}{\.{\\delcode} primitive@>
@@ -30043,12 +30042,11 @@ def_code: begin case chr_code of
   math_code_base+2: print_esc("omathcode");
   lc_code_base: print_esc("lccode");
   uc_code_base: print_esc("uccode");
-  sf_code_base: print_esc("sfcode");
   del_code_base: print_esc("delcode");
   othercases print_esc("odelcode");
   endcases; end;
 XeTeX_def_code:
-  if chr_code=sf_code_base then print_esc("XeTeXcharclass")
+  if chr_code=xetex_char_class_base then print_esc("XeTeXcharclass")
   else if chr_code=math_code_base then print_esc("Umathcodenum")
   else if chr_code=math_code_base+1 then print_esc("Umathcode")
   else if chr_code=del_code_base then print_esc("Udelcodenum")
@@ -30058,6 +30056,7 @@ sa_def_code: begin case chr_code of
   post_break_penalty_sa: print_esc("postbreakpenalty");
   inhibit_xsp_code_sa: print_esc("inhibitxspcode");
   auto_xsp_code_sa: print_esc("xspcode");
+  sf_code_sa: print_esc("sfcode");
   endcases; end;
 def_family: print_size(chr_code-math_font_base);
 
@@ -30066,13 +30065,12 @@ following program is careful to check each case properly.
 
 @<Assignments@>=
 XeTeX_def_code: begin
-    if cur_chr = sf_code_base then begin
+    if cur_chr = xetex_char_class_base then begin
       p:=cur_chr; scan_usv_num;
       p:=p+cur_val;
-      n:=sf_code(cur_val) mod @"10000;
       scan_optional_equals;
       scan_char_class;
-      define(p,data,cur_val*@"10000 + n);
+      define(p,data,cur_val);
     end
     else if cur_chr = math_code_base then begin
       p:=cur_chr; scan_usv_num;
@@ -30154,24 +30152,25 @@ end else begin
         del_word_define(p,cur_val1,cur_val); end
       else del_word_define(p, -1, cur_val);
       end;
-    sf_code_base: begin
-      n:=equiv(p) div @"10000; define(p,data,n*@"10000 + cur_val);
-      end;
     othercases define(p,data,cur_val);
   end;
 end;
 sa_def_code: begin
-  p:=cur_chr; cur_val1:=p; scan_usv_num; p:=p*number_usvs+cur_val; scan_optional_equals;
+  if cur_chr=inhibit_xsp_code_sa then n:=3
+  else if cur_chr=auto_xsp_code_sa then n:=3
+  else if cur_chr=sf_code_sa then n:=@'77777
+  else n:=@'17777777777;
+  p:=cur_chr; scan_usv_num; p:=p*number_usvs+cur_val; scan_optional_equals;
   scan_int;
-  if (cur_val>3)and((cur_val1=inhibit_xsp_code_sa)or(cur_val1=auto_xsp_code_sa)) then
+  if cur_val>n then
     begin print_err("Invalid code ("); print_int(cur_val);
 @.Invalid code@>
-    print("), should be in the range 0..3"); 
+    print("), should be in the range 0.."); print_int(n);
     help1("I'm going to use 0 instead of that illegal code value.");@/
     error; cur_val:=0;
     end;
-    find_sa_element(int_val, p, true); e:=true;
-    if global then gsa_w_def(cur_ptr,cur_val)@+else sa_w_def(cur_ptr, cur_val);
+  find_sa_element(int_val, p, true);
+  if global then gsa_w_def(cur_ptr,cur_val)@+else sa_w_def(cur_ptr, cur_val);
   end;
 
 @ @<Let |n| be the largest...@>=
@@ -30179,7 +30178,6 @@ if cur_chr=cat_code_base then n:=max_char_code
 else if cur_chr=cjkx_code_base then n:=@'17777777777
 else if cur_chr=math_code_base then n:=@"8000
 else if cur_chr=math_code_base+2 then n:=@"8000000
-else if cur_chr=sf_code_base then n:=@'77777
 else if cur_chr=del_code_base then n:=@'77777777
 else n:=biggest_usv
 
