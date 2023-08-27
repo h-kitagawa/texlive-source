@@ -444,9 +444,11 @@ const @<Constants in the outer block@>@/
 mtype @<Types in the outer block@>@/
 var @<Global variables@>@/
 @#
+procedure initialize_after_sa; forward;
 procedure initialize; {this procedure gets things started properly}
   var @<Local variables for initialization@>@/
   begin @<Initialize whatever \TeX\ might access@>@;
+  initialize_after_sa;
   end;@#
 @t\4@>@<Basic printing procedures@>@/
 @t\4@>@<Error handling procedures@>@/
@@ -5818,8 +5820,7 @@ registers.
 @d cat_code_base=math_font_base+number_math_fonts
   {table of |number_usvs| command codes (the ``catcodes'')}
 @d cjkx_code_base=cat_code_base+number_usvs {table of |number_usvs| cjkx mappings}
-@d auto_xsp_code_base=cjkx_code_base+number_usvs {table of |number_usvs| auto spacer flag}
-@d kansuji_base=auto_xsp_code_base+number_usvs {table of 10 kansuji mappings}
+@d kansuji_base=cjkx_code_base+number_usvs {table of 10 kansuji mappings}
 @d lc_code_base=kansuji_base+10 {table of |number_usvs| lowercase mappings}
 @d uc_code_base=lc_code_base+number_usvs {table of |number_usvs| uppercase mappings}
 @d sf_code_base=uc_code_base+number_usvs {table of |number_usvs| spacefactor mappings}
@@ -5851,16 +5852,18 @@ registers.
   {Note: |math_code(c)| is the true math code plus |min_halfword|}
 @d auto_spacing==equiv(auto_spacing_code) { \pTeX }
 @d auto_xspacing==equiv(auto_xspacing_code) { \pTeX }
-@d auto_xsp_code(#)==equiv(auto_xsp_code_base+#) { \pTeX }
 @d kansuji_char(#)==equiv(kansuji_base+#) { \pTeX }
 
 @
 @d pre_break_penalty_sa=1
 @d post_break_penalty_sa=2
 @d inhibit_xsp_code_sa=3
+@d auto_xsp_code_sa=4
+
 @d pre_break_penalty(#)==get_int_sa_element(pre_break_penalty_sa*number_usvs+#, 0)
 @d post_break_penalty(#)==get_int_sa_element(post_break_penalty_sa*number_usvs+#, 0)
 @d inhibit_xsp_code(#)==get_int_sa_element(inhibit_xsp_code_sa*number_usvs+#, 3)
+@d auto_xsp_code(#)==get_int_sa_element(auto_xsp_code_sa*number_usvs+#, 0)
 
 @<Put each...@>=
 primitive("output",assign_toks,output_routine_loc);
@@ -5938,26 +5941,34 @@ eqtb[auto_xspacing_code]:=eqtb[cat_code_base];
 for k:=cat_code_base+1 to int_base-1 do eqtb[k]:=eqtb[cat_code_base];
 for k:=0 to number_usvs-1 do
   begin cat_code(k):=other_char; math_code(k):=hi(k); sf_code(k):=1000;
-  cjkx_code(k):=0; auto_xsp_code(k):=0;
+  cjkx_code(k):=0;
   end;
 cat_code(carriage_return):=car_ret; cat_code(" "):=spacer;
 cat_code("\"):=escape; cat_code("%"):=comment;
 cat_code(invalid_code):=invalid_char; cat_code(null_code):=ignore;
 for k:="0" to "9" do begin
-  math_code(k):=hi(k + set_class_field(var_fam_class)); auto_xsp_code(k):=3;
+  math_code(k):=hi(k + set_class_field(var_fam_class));
 end;
 for k:="A" to "Z" do
   begin cat_code(k):=letter; cat_code(k+"a"-"A"):=letter;@/
   math_code(k):=hi(k + set_family_field(1) + set_class_field(var_fam_class));
   math_code(k+"a"-"A"):=hi(k+"a"-"A" + set_family_field(1) + set_class_field(var_fam_class));@/
   lc_code(k):=k+"a"-"A"; lc_code(k+"a"-"A"):=k+"a"-"A";@/
-  uc_code(k):=k; uc_code(k+"a"-"A"):=k;@/
-  sf_code(k):=999; auto_xsp_code(k):=3; auto_xsp_code(k+"a"-"A"):=3;
+  uc_code(k):=k; uc_code(k+"a"-"A"):=k;@/ sf_code(k):=999;
   end;
 kansuji_char(0):=12295; kansuji_char(1):=19968; kansuji_char(2):=20108;
 kansuji_char(3):=19977; kansuji_char(4):=22235; kansuji_char(5):=20116;
 kansuji_char(6):=20845; kansuji_char(7):=19971; kansuji_char(8):=20843;
 kansuji_char(9):=20061;
+
+@ 
+@d init_int_sa_element(#)==begin find_sa_element(0,#,true); init_int_sa_element_end
+@d init_int_sa_element_end(#)==gsa_w_def(cur_ptr,#); end
+@d init_auto_xsp_code(#)==init_int_sa_element(auto_xsp_code_sa*number_usvs+#)
+
+@<Initialize parameters which are stored in a sparse tree @>=
+for k:="0" to "9" do init_auto_xsp_code(k)(3);
+for k:="A" to "Z" do begin init_auto_xsp_code(k)(3); init_auto_xsp_code(k+"a"-"A")(3); end;
 
 @ @<Show equivalent |n|, in region 4@>=
 if (n=par_shape_loc) or ((n>=etex_pen_base) and (n<etex_pens)) then
@@ -6008,11 +6019,8 @@ if n<math_code_base then
   begin if n<cjkx_code_base then
     begin print_esc("catcode"); print_int(n-cat_code_base);
     end
-  else if n<auto_xsp_code_base then
-    begin print_esc("cjkxcode"); print_int(n-cjkx_code_base);
-    end
   else if n<kansuji_base then
-    begin print_esc("xspcode"); print_int(n-auto_xsp_code_base);
+    begin print_esc("cjkxcode"); print_int(n-cjkx_code_base);
     end
   else if n<lc_code_base then
     begin print_esc("kansujichar"); print_int(n-kansuji_base);
@@ -29988,7 +29996,7 @@ primitive("prebreakpenalty",sa_def_code,pre_break_penalty_sa);
 @!@:pre_break_penalty_}{\.{\\prebreakpenalty} primitive@>
 primitive("postbreakpenalty",sa_def_code,post_break_penalty_sa);
 @!@:post_break_penalty_}{\.{\\postbreakpenalty} primitive@>
-primitive("xspcode",def_code,auto_xsp_code_base);
+primitive("xspcode",sa_def_code,auto_xsp_code_sa);
 @!@:auto_xsp_code_}{\.{\\xspcode} primitive@>
 primitive("inhibitxspcode",sa_def_code,inhibit_xsp_code_sa);
 @!@:inhibit_xsp_code_}{\.{\\inhibitxspcode} primitive@>
@@ -30031,7 +30039,6 @@ primitive("scriptscriptfont",def_family,math_font_base+script_script_size);
 def_code: begin case chr_code of
   cat_code_base: print_esc("catcode");
   cjkx_code_base: print_esc("cjkxcode");
-  auto_xsp_code_base: print_esc("xspcode");
   math_code_base: print_esc("mathcode");
   math_code_base+2: print_esc("omathcode");
   lc_code_base: print_esc("lccode");
@@ -30050,6 +30057,7 @@ sa_def_code: begin case chr_code of
   pre_break_penalty_sa: print_esc("prebreakpenalty");
   post_break_penalty_sa: print_esc("postbreakpenalty");
   inhibit_xsp_code_sa: print_esc("inhibitxspcode");
+  auto_xsp_code_sa: print_esc("xspcode");
   endcases; end;
 def_family: print_size(chr_code-math_font_base);
 
@@ -30155,7 +30163,7 @@ end;
 sa_def_code: begin
   p:=cur_chr; cur_val1:=p; scan_usv_num; p:=p*number_usvs+cur_val; scan_optional_equals;
   scan_int;
-  if (cur_val>3)and(cur_val1=inhibit_xsp_code_sa) then
+  if (cur_val>3)and((cur_val1=inhibit_xsp_code_sa)or(cur_val1=auto_xsp_code_sa)) then
     begin print_err("Invalid code ("); print_int(cur_val);
 @.Invalid code@>
     print("), should be in the range 0..3"); 
@@ -30168,8 +30176,7 @@ sa_def_code: begin
 
 @ @<Let |n| be the largest...@>=
 if cur_chr=cat_code_base then n:=max_char_code
-else if cur_chr<auto_xsp_code_base then n:=@'17777777777
-else if cur_chr=auto_xsp_code_base then n:=3
+else if cur_chr=cjkx_code_base then n:=@'17777777777
 else if cur_chr=math_code_base then n:=@"8000
 else if cur_chr=math_code_base+2 then n:=@"8000000
 else if cur_chr=sf_code_base then n:=@'77777
@@ -31447,7 +31454,11 @@ written.
 Well---almost. Let's leave space for a few more routines that we may
 have forgotten.
 
-@p @<Last-minute procedures@>
+@p procedure initialize_after_sa;
+var i:integer;
+begin; @!init @<Initialize parameters which are stored in a sparse tree @>; tini@/
+end;
+@<Last-minute procedures@>
 
 @ We have noted that there are two versions of \TeX82. One, called \.{INITEX},
 @.INITEX@>
@@ -37553,7 +37564,6 @@ current_xspacing_mode_code: print_esc("currentxspacingmode");
 @ @<Cases for fetching an integer value@>=
 current_spacing_mode_code: cur_val:=auto_spacing;
 current_xspacing_mode_code: cur_val:=auto_xspacing;
-
 
 @* \[54] System-dependent changes.
 This section should be replaced, if necessary, by any special

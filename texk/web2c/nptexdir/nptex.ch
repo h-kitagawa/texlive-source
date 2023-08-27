@@ -877,6 +877,13 @@ undump_things(ctype_base[null_font], font_ptr+1-null_font);
 undump_things(char_base[null_font], font_ptr+1-null_font);
 @z
 
+@x
+begin; @!init @<Initialize parameters which are stored in a sparse tree @>; tini@/
+@y
+begin; @!Init @<Initialize parameters which are stored in a sparse tree @>; Tini@/
+@z
+
+
 @x [51.1332] l.24203 - make the main program a procedure, for eqtb hack.
   setup_bound_var (15000)('max_strings')(max_strings);
 @y
