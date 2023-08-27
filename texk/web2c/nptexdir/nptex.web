@@ -5967,11 +5967,12 @@ kansuji_char(9):=20061;
 @d init_int_sa_element_end(#)==gsa_w_def(cur_ptr,#); end
 @d init_auto_xsp_code(#)==init_int_sa_element(auto_xsp_code_sa*number_usvs+#)
 @d init_sf_code(#)==init_int_sa_element(sf_code_sa*number_usvs+#)
+  { Note that second argument of init_sf_code must be offsetted by $-1000$ }
 
 @<Initialize parameters which are stored in a sparse tree @>=
 for k:="0" to "9" do init_auto_xsp_code(k)(3);
 for k:="A" to "Z" do begin 
-  init_auto_xsp_code(k)(3); init_auto_xsp_code(k+"a"-"A")(3); init_sf_code(k)(999);
+  init_auto_xsp_code(k)(3); init_auto_xsp_code(k+"a"-"A")(3); init_sf_code(k)(-1);
   end;
 
 @ @<Show equivalent |n|, in region 4@>=
@@ -30156,13 +30157,13 @@ end else begin
   end;
 end;
 sa_def_code: begin
-  if cur_chr=inhibit_xsp_code_sa then n:=3
-  else if cur_chr=auto_xsp_code_sa then n:=3
-  else if cur_chr=sf_code_sa then n:=@'77777
-  else n:=@'17777777777;
+  if cur_chr=inhibit_xsp_code_sa then begin n:=3; m:=3; end
+  else if cur_chr=auto_xsp_code_sa then begin n:=3; m:=0; end
+  else if cur_chr=sf_code_sa then begin n:=@'77777; m:=1000; end
+  else begin n:=@'17777777777; m:=0; end;
   p:=cur_chr; scan_usv_num; p:=p*number_usvs+cur_val; scan_optional_equals;
   scan_int;
-  if cur_val>n then
+  if (cur_val<0)or(cur_val>n) then
     begin print_err("Invalid code ("); print_int(cur_val);
 @.Invalid code@>
     print("), should be in the range 0.."); print_int(n);
@@ -30170,7 +30171,7 @@ sa_def_code: begin
     error; cur_val:=0;
     end;
   find_sa_element(int_val, p, true);
-  if global then gsa_w_def(cur_ptr,cur_val)@+else sa_w_def(cur_ptr, cur_val);
+  if global then gsa_w_def(cur_ptr,cur_val-m)@+else sa_w_def(cur_ptr, cur_val-m);
   end;
 
 @ @<Let |n| be the largest...@>=
@@ -35919,7 +35920,7 @@ exit:end;
 function get_int_sa_element(@!n:halfword;@!d:integer):integer;
 begin find_sa_element(int_val, n, false);
 if cur_ptr=null then get_int_sa_element:=d
-else get_int_sa_element:=sa_int(cur_ptr);
+else get_int_sa_element:=sa_int(cur_ptr)+d;
 end;
 
 @ The array elements for registers are subject to grouping and have an
@@ -36045,14 +36046,16 @@ the |eqtb| array.
 @<Declare \eTeX\ procedures for tr...@>=
 @!stat procedure show_sa(@!p:pointer;@!s:str_number);
 var t:small_number; {the type of element}
-@!i:halfword;
-begin begin_diagnostic; print_char("{"); print(s); print_char(" ");
+@!i:halfword; @!j,@!m:integer;
+begin begin_diagnostic; print_char("{"); print(s); print_char(" "); m:=0; 
 if p=null then print_char("?") {this can't happen}
 else  begin t:=sa_type(p);
   if t=int_val then begin i:=get_sa_num(p);
     if i<number_usvs then print_cmd_chr(register,p)
-    else begin 
-      print_cmd_chr(sa_def_code, i div number_usvs); print_int(i mod number_usvs); 
+    else begin j:=i div number_usvs;
+      if j=inhibit_xsp_code_sa then m:=3
+      else if j=sf_code_sa then m:=1000;
+      print_cmd_chr(sa_def_code, j); print_int(i mod number_usvs); 
       end;
   end
   else if t<box_val then print_cmd_chr(register,p)
@@ -36062,7 +36065,7 @@ else  begin t:=sa_type(p);
   else if t=tok_val then print_cmd_chr(toks_register,p)
   else print_char("?"); {this can't happen either}
   print_char("=");
-  if t=int_val then print_int(sa_int(p))
+  if t=int_val then print_int(sa_int(p)+m)
   else if t=dimen_val then
     begin print_scaled(sa_dim(p)); print("pt");
     end
