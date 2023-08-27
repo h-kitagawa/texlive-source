@@ -5156,7 +5156,8 @@ that might be expanded by `\.{\\the}'.
 @d set_shape=set_box_dimen+1 {specify fancy paragraph shape ( \.{\\parshape} )}
 @d def_code=set_shape+1 {define a character code ( \.{\\catcode}, etc.~)}
 @d XeTeX_def_code=def_code+1 {\.{\\Umathcode}, \.{\\Udelcode}}
-@d def_family=XeTeX_def_code+1 {declare math fonts ( \.{\\textfont}, etc.~)}
+@d sa_def_code=XeTeX_def_code+1 {several character code which is stored in a sparse tree }
+@d def_family=sa_def_code+1 {declare math fonts ( \.{\\textfont}, etc.~)}
 @d set_font=def_family+1 {set current font ( font identifiers )}
 @d def_font=set_font+1 {define a font file ( \.{\\font} )}
 @d def_jfont=def_font+1 {define a font file ( \.{\\jfont} )}
@@ -5817,11 +5818,8 @@ registers.
 @d cat_code_base=math_font_base+number_math_fonts
   {table of |number_usvs| command codes (the ``catcodes'')}
 @d cjkx_code_base=cat_code_base+number_usvs {table of |number_usvs| cjkx mappings}
-@d pre_break_penalty_base=cjkx_code_base+number_usvs
-@d post_break_penalty_base=pre_break_penalty_base+number_usvs
-@d auto_xsp_code_base=post_break_penalty_base+number_usvs {table of |number_usvs| auto spacer flag}
-@d inhibit_xsp_code_base=auto_xsp_code_base+number_usvs {table of |number_usvs| inhibit spacer flag}
-@d kansuji_base=inhibit_xsp_code_base+number_usvs {table of 10 kansuji mappings}
+@d auto_xsp_code_base=cjkx_code_base+number_usvs {table of |number_usvs| auto spacer flag}
+@d kansuji_base=auto_xsp_code_base+number_usvs {table of 10 kansuji mappings}
 @d lc_code_base=kansuji_base+10 {table of |number_usvs| lowercase mappings}
 @d uc_code_base=lc_code_base+number_usvs {table of |number_usvs| uppercase mappings}
 @d sf_code_base=uc_code_base+number_usvs {table of |number_usvs| spacefactor mappings}
@@ -5846,8 +5844,6 @@ registers.
 @d fam_fnt(#)==equiv(math_font_base+#)
 @d cat_code(#)==equiv(cat_code_base+#)
 @d cjkx_code(#)==equiv(cjkx_code_base+#) { \npTeX }
-@d pre_break_penalty(#)==equiv(pre_break_penalty_base+#) { \npTeX }
-@d post_break_penalty(#)==equiv(post_break_penalty_base+#) { \npTeX }
 @d lc_code(#)==equiv(lc_code_base+#)
 @d uc_code(#)==equiv(uc_code_base+#)
 @d sf_code(#)==equiv(sf_code_base+#)
@@ -5856,8 +5852,15 @@ registers.
 @d auto_spacing==equiv(auto_spacing_code) { \pTeX }
 @d auto_xspacing==equiv(auto_xspacing_code) { \pTeX }
 @d auto_xsp_code(#)==equiv(auto_xsp_code_base+#) { \pTeX }
-@d inhibit_xsp_code(#)==equiv(inhibit_xsp_code_base+#) { \pTeX }
 @d kansuji_char(#)==equiv(kansuji_base+#) { \pTeX }
+
+@
+@d pre_break_penalty_sa=1
+@d post_break_penalty_sa=2
+@d inhibit_xsp_code_sa=3
+@d pre_break_penalty(#)==get_int_sa_element(pre_break_penalty_sa*number_usvs+#, 0)
+@d post_break_penalty(#)==get_int_sa_element(post_break_penalty_sa*number_usvs+#, 0)
+@d inhibit_xsp_code(#)==get_int_sa_element(inhibit_xsp_code_sa*number_usvs+#, 3)
 
 @<Put each...@>=
 primitive("output",assign_toks,output_routine_loc);
@@ -5935,8 +5938,7 @@ eqtb[auto_xspacing_code]:=eqtb[cat_code_base];
 for k:=cat_code_base+1 to int_base-1 do eqtb[k]:=eqtb[cat_code_base];
 for k:=0 to number_usvs-1 do
   begin cat_code(k):=other_char; math_code(k):=hi(k); sf_code(k):=1000;
-  cjkx_code(k):=0; pre_break_penalty(k):=0; post_break_penalty(k):=0;
-  auto_xsp_code(k):=0; inhibit_xsp_code(k):=3;
+  cjkx_code(k):=0; auto_xsp_code(k):=0;
   end;
 cat_code(carriage_return):=car_ret; cat_code(" "):=spacer;
 cat_code("\"):=escape; cat_code("%"):=comment;
@@ -6006,27 +6008,11 @@ if n<math_code_base then
   begin if n<cjkx_code_base then
     begin print_esc("catcode"); print_int(n-cat_code_base);
     end
-  else if n<pre_break_penalty_base then
+  else if n<auto_xsp_code_base then
     begin print_esc("cjkxcode"); print_int(n-cjkx_code_base);
     end
-  else if n<post_break_penalty_base then
-    begin print_esc("prebreakpenalty"); print_int(n-pre_break_penalty_base);
-    end
-  else if n<auto_xsp_code_base then
-    begin print_esc("postbreakpenalty"); print_int(n-post_break_penalty_base);
-    end
-  else if n<inhibit_xsp_code_base then
-    begin print_esc("xspcode"); print_int(n-auto_xsp_code_base);
-    end
   else if n<kansuji_base then
-    begin print("inhibitxspcode"); print_int(n-inhibit_xsp_code_base);
-      print(", type=");
-      case eq_type(n) of
-        0: print("both");   { |inhibit_both| }
-        1: print("before"); { |inhibit_previous| }
-        2: print("after");  { |inhibit_after| }
-        3: print("none");   { |inhibit_none| }
-      end; {there are no other cases}
+    begin print_esc("xspcode"); print_int(n-auto_xsp_code_base);
     end
   else if n<lc_code_base then
     begin print_esc("kansujichar"); print_int(n-kansuji_base);
@@ -10211,6 +10197,12 @@ begin restart: m:=cur_chr;
 case cur_cmd of
 set_kansuji_char: @<Fetch kansuji char code from some table@>;
 def_code: @<Fetch a character code from some table@>;
+sa_def_code: begin scan_usv_num;
+  if m=inhibit_xsp_code_sa then 
+    scanned_result(inhibit_xsp_code(cur_val))(int_val)
+  else
+    scanned_result(get_int_sa_element(m*number_usvs+cur_val,0))(int_val);
+end;
 XeTeX_def_code:
   begin
     scan_usv_num;
@@ -29557,6 +29549,7 @@ any_mode(set_page_int),
 any_mode(set_box_dimen),
 any_mode(set_shape),
 any_mode(def_code),
+any_mode(sa_def_code),
 any_mode(XeTeX_def_code),
 any_mode(def_family),
 any_mode(set_font),
@@ -29991,13 +29984,13 @@ primitive("catcode",def_code,cat_code_base);
 @!@:cat_code_}{\.{\\catcode} primitive@>
 primitive("cjkxcode",def_code,cjkx_code_base);
 @!@:cjkx_code_}{\.{\\cjkxcode} primitive@>
-primitive("prebreakpenalty",def_code,pre_break_penalty_base);
+primitive("prebreakpenalty",sa_def_code,pre_break_penalty_sa);
 @!@:pre_break_penalty_}{\.{\\prebreakpenalty} primitive@>
-primitive("postbreakpenalty",def_code,post_break_penalty_base);
+primitive("postbreakpenalty",sa_def_code,post_break_penalty_sa);
 @!@:post_break_penalty_}{\.{\\postbreakpenalty} primitive@>
 primitive("xspcode",def_code,auto_xsp_code_base);
 @!@:auto_xsp_code_}{\.{\\xspcode} primitive@>
-primitive("inhibitxspcode",def_code,inhibit_xsp_code_base);
+primitive("inhibitxspcode",sa_def_code,inhibit_xsp_code_sa);
 @!@:inhibit_xsp_code_}{\.{\\inhibitxspcode} primitive@>
 primitive("mathcode",def_code,math_code_base);
 @!@:math_code_}{\.{\\mathcode} primitive@>
@@ -30038,10 +30031,7 @@ primitive("scriptscriptfont",def_family,math_font_base+script_script_size);
 def_code: begin case chr_code of
   cat_code_base: print_esc("catcode");
   cjkx_code_base: print_esc("cjkxcode");
-  pre_break_penalty_base: print_esc("prebreakpenalty");
-  post_break_penalty_base: print_esc("postbreakpenalty");
   auto_xsp_code_base: print_esc("xspcode");
-  inhibit_xsp_code_base: print_esc("inhibitxspcode");
   math_code_base: print_esc("mathcode");
   math_code_base+2: print_esc("omathcode");
   lc_code_base: print_esc("lccode");
@@ -30056,6 +30046,11 @@ XeTeX_def_code:
   else if chr_code=math_code_base+1 then print_esc("Umathcode")
   else if chr_code=del_code_base then print_esc("Udelcodenum")
   else print_esc("Udelcode");
+sa_def_code: begin case chr_code of
+  pre_break_penalty_sa: print_esc("prebreakpenalty");
+  post_break_penalty_sa: print_esc("postbreakpenalty");
+  inhibit_xsp_code_sa: print_esc("inhibitxspcode");
+  endcases; end;
 def_family: print_size(chr_code-math_font_base);
 
 @ The different types of code values have different legal ranges; the
@@ -30116,15 +30111,14 @@ def_code: if cur_chr=del_code_base+2 then begin {\.{\\odelcode}}
   cur_val:=(cur_val div @"10000)*@"200000+(cur_val mod @"10000);
   del_word_define(p,cur_val1,cur_val);
 end else begin 
-  @<Let |m| be the smallest legal code value, based on |cur_chr|@>;
   @<Let |n| be the largest legal code value, based on |cur_chr|@>;
   p:=cur_chr; cur_val1:=p; scan_usv_num; p:=p+cur_val; scan_optional_equals;
   scan_int;
-  if ((cur_val<m)and(p<del_code_base))or(cur_val>n) then
+  if ((cur_val<0)and(p<del_code_base))or(cur_val>n) then
     begin print_err("Invalid code ("); print_int(cur_val);
 @.Invalid code@>
     if p<del_code_base then 
-      begin print("), should be in the range "); print_int(m); print(".."); 
+      begin print("), should be in the range 0.."); 
       end
     else print("), should be at most ");
     print_int(n);
@@ -30158,17 +30152,24 @@ end else begin
     othercases define(p,data,cur_val);
   end;
 end;
-
-@ @<Let |m| be the smallest...@>=
-if (cur_chr=pre_break_penalty_base)or(cur_chr=post_break_penalty_base) then 
-  m:=-@'17777777777
-else m:=0
+sa_def_code: begin
+  p:=cur_chr; cur_val1:=p; scan_usv_num; p:=p*number_usvs+cur_val; scan_optional_equals;
+  scan_int;
+  if (cur_val>3)and(cur_val1=inhibit_xsp_code_sa) then
+    begin print_err("Invalid code ("); print_int(cur_val);
+@.Invalid code@>
+    print("), should be in the range 0..3"); 
+    help1("I'm going to use 0 instead of that illegal code value.");@/
+    error; cur_val:=0;
+    end;
+    find_sa_element(int_val, p, true); e:=true;
+    if global then gsa_w_def(cur_ptr,cur_val)@+else sa_w_def(cur_ptr, cur_val);
+  end;
 
 @ @<Let |n| be the largest...@>=
 if cur_chr=cat_code_base then n:=max_char_code
 else if cur_chr<auto_xsp_code_base then n:=@'17777777777
 else if cur_chr=auto_xsp_code_base then n:=3
-else if cur_chr=inhibit_xsp_code_base then n:=3
 else if cur_chr=math_code_base then n:=@"8000
 else if cur_chr=math_code_base+2 then n:=@"8000000
 else if cur_chr=sf_code_base then n:=@'77777
@@ -31136,7 +31137,7 @@ information even when it has not been gathering statistics.
 @<Dump the dynamic memory@>=
 sort_avail; var_used:=0;
 dump_int(lo_mem_max); dump_int(rover);
-if eTeX_ex then for k:=int_val to inter_char_val do dump_int(sa_root[k]);
+for k:=int_val to inter_char_val do dump_int(sa_root[k]);
 p:=mem_bot; q:=rover; x:=0;
 repeat for k:=p to q+1 do dump_wd(mem[k]);
 x:=x+q+2-p; var_used:=var_used+q-p;
@@ -31160,8 +31161,7 @@ print_int(var_used); print_char("&"); print_int(dyn_used)
 @ @<Undump the dynamic memory@>=
 undump(lo_mem_stat_max+1000)(hi_mem_stat_min-1)(lo_mem_max);
 undump(lo_mem_stat_max+1)(lo_mem_max)(rover);
-if eTeX_ex then for k:=int_val to inter_char_val do
-  undump(null)(lo_mem_max)(sa_root[k]);
+for k:=int_val to inter_char_val do undump(null)(lo_mem_max)(sa_root[k]);
 p:=mem_bot; q:=rover;
 repeat for k:=p to q+1 do undump_wd(mem[k]);
 p:=q+node_size(q);
@@ -35907,6 +35907,12 @@ not_found4: @<Create a new array element of type |t| with index |i|@>;
 link(cur_ptr):=q; add_sa_ptr;
 exit:end;
 
+function get_int_sa_element(@!n:halfword;@!d:integer):integer;
+begin find_sa_element(int_val, n, false);
+if cur_ptr=null then get_int_sa_element:=d
+else get_int_sa_element:=sa_int(cur_ptr);
+end;
+
 @ The array elements for registers are subject to grouping and have an
 |sa_lev| field (quite analogous to |eq_level|) instead of |sa_used|.
 Since saved values as well as shorthand definitions (created by e.g.,
@@ -36010,15 +36016,17 @@ exit:end;
 @ The |print_sa_num| procedure prints the register number corresponding
 to an array element.
 
+@d print_sa_num(#)==print_int(get_sa_num(#))
+
 @<Basic print...@>=
-procedure print_sa_num(@!q:pointer); {print register number}
+function get_sa_num(@!q:pointer):integer;
 var @!n:halfword; {the register number}
-begin if sa_index(q)<dimen_val_limit then n:=sa_num(q) {the easy case}
+begin if sa_index(q)<dimen_val_limit then get_sa_num:=sa_num(q) {the easy case}
 else  begin n:=hex_dig4(sa_index(q)); q:=link(q); n:=n+64*sa_index(q);
-  q:=link(q); n:=n+64*64*(sa_index(q)+64*sa_index(link(q)));
+  q:=link(q); get_sa_num:=n+64*64*(sa_index(q)+64*sa_index(link(q)));
   end;
-print_int(n);
 end;
+{ procedure print_sa_num(@!q:pointer); begin print_int(get_sa_num(q)); end; }
 
 @ Here is a procedure that displays the contents of an array element
 symbolically.  It is used under similar circumstances as is
@@ -36028,10 +36036,17 @@ the |eqtb| array.
 @<Declare \eTeX\ procedures for tr...@>=
 @!stat procedure show_sa(@!p:pointer;@!s:str_number);
 var t:small_number; {the type of element}
+@!i:halfword;
 begin begin_diagnostic; print_char("{"); print(s); print_char(" ");
 if p=null then print_char("?") {this can't happen}
 else  begin t:=sa_type(p);
-  if t<box_val then print_cmd_chr(register,p)
+  if t=int_val then begin i:=get_sa_num(p);
+    if i<number_usvs then print_cmd_chr(register,p)
+    else begin 
+      print_cmd_chr(sa_def_code, i div number_usvs); print_int(i mod number_usvs); 
+      end;
+  end
+  else if t<box_val then print_cmd_chr(register,p)
   else if t=box_val then
     begin print_esc("box"); print_sa_num(p);
     end
