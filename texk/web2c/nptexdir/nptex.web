@@ -30094,14 +30094,14 @@ XeTeX_def_code: begin
       p:=p+cur_val;
       scan_optional_equals;
       scan_int; {|scan_xetex_del_code_int|; !!FIXME!!}
-      word_define(p,cur_val mod @"40000000);
+      del_word_define(p,cur_val mod @"40000000, 0);
     end else begin
       p:=cur_chr-1; scan_usv_num;
       p:=p+cur_val;
       scan_optional_equals;
       scan_math_fam_int;   n:=cur_val * @"200000; {extended delimiter code family}
       scan_usv_num;        n:=n + cur_val; {extended delimiter code USV}
-      word_define(p,n);
+      del_word_define(p,n, 0);
     end;
   end;
 def_code: if cur_chr=del_code_base+2 then begin {\.{\\odelcode}}
@@ -30113,9 +30113,11 @@ def_code: if cur_chr=del_code_base+2 then begin {\.{\\odelcode}}
     print("), should be at most ""7FFFFFF ""FFFFFF");
     help1("I'm going to use 0 instead of that illegal code value.");@/
     error; cur_val1:=0; cur_val:=0;
-    end;
-  cur_val1:=(cur_val1 div @"10000)*@"200000+(cur_val1 mod @"10000);
-  cur_val:=(cur_val div @"10000)*@"200000+(cur_val mod @"10000);
+    end
+  else if cur_val1>=0 then begin
+    cur_val1:=(cur_val1 div @"10000)*@"200000+(cur_val1 mod @"10000);
+    cur_val:=(cur_val div @"10000)*@"200000+(cur_val mod @"10000);
+  end else cur_val:=0;
   del_word_define(p,cur_val1,cur_val);
 end else begin 
   @<Let |n| be the largest legal code value, based on |cur_chr|@>;
@@ -30151,7 +30153,7 @@ end else begin
         cur_val1:=(cur_val1 div @"100)*@"200000 + cur_val1 mod @"100;
         cur_val:=((cur_val div @"100) mod 16)*@"200000 + cur_val mod @"100;
         del_word_define(p,cur_val1,cur_val); end
-      else del_word_define(p, -1, cur_val);
+      else del_word_define(p, cur_val, 0);
       end;
     othercases define(p,data,cur_val);
   end;
