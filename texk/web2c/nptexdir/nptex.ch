@@ -186,6 +186,17 @@ last_node_type:=-1; last_node_subtype:=-1;
 @d etex_int_base=web2c_int_pars {base for \eTeX's integer parameters}
 @z
 
+@x [17.240]
+for k:=int_base to del_code_base-1 do eqtb[k].int:=0;
+@y
+for k:=int_base to dimen_base-1 do eqtb[k].int:=0;
+@z
+
+@x
+del_code("."):=0; {this null delimiter is used in error recovery}
+@y
+@z
+
 @x [22.304] l.6536 - texarray; additions for file:line:error style.
 @!input_file : ^alpha_file;
 @y

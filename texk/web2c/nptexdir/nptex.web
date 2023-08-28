@@ -5860,12 +5860,16 @@ registers.
 @d inhibit_xsp_code_sa=3
 @d auto_xsp_code_sa=4
 @d sf_code_sa=5
+@d del_code_sa=6 { small family and character }
+@d del_code1_sa=7 { large family and character }
 
 @d pre_break_penalty(#)==get_int_sa_element(pre_break_penalty_sa*number_usvs+#, 0)
 @d post_break_penalty(#)==get_int_sa_element(post_break_penalty_sa*number_usvs+#, 0)
 @d inhibit_xsp_code(#)==get_int_sa_element(inhibit_xsp_code_sa*number_usvs+#, 3)
 @d auto_xsp_code(#)==get_int_sa_element(auto_xsp_code_sa*number_usvs+#, 0)
 @d sf_code(#)==get_int_sa_element(sf_code_sa*number_usvs+#, 1000)
+@d del_code(#)==get_int_sa_element(del_code_sa*number_usvs+#, -1)
+@d del_code1(#)==get_int_sa_element(del_code1_sa*number_usvs+#, 0)
 
 @<Put each...@>=
 primitive("output",assign_toks,output_routine_loc);
@@ -6151,11 +6155,9 @@ that will be defined later.
 @#
 @d int_pars=etex_int_pars {total number of integer parameters}
 @d count_base=int_base+int_pars {|number_regs| user \.{\\count} registers}
-@d del_code_base=count_base+number_regs {|number_usvs| delimiter code mappings}
-@d dimen_base=del_code_base+number_usvs {beginning of region 6}
+@d del_code_base=count_base+2 {dummy value between |count_base| and $|dimen_base|-2$}
+@d dimen_base=count_base+number_regs {beginning of region 6}
 @#
-@d del_code(#)==eqtb[del_code_base+#].int
-@d del_code1(#)==getintone(eqtb[del_code_base+#])
 @d count(#)==eqtb[count_base+#].int
 @d int_par(#)==eqtb[int_base+#].int {an integer parameter}
 @d pretolerance==int_par(pretolerance_code)
@@ -6458,13 +6460,14 @@ complete failure.
 @^null delimiter@>
 
 @<Initialize table entries...@>=
-for k:=int_base to del_code_base-1 do eqtb[k].int:=0;
+for k:=int_base to dimen_base-1 do eqtb[k].int:=0;
 mag:=1000; tolerance:=10000; hang_after:=1; max_dead_cycles:=25;
 escape_char:="\"; end_line_char:=carriage_return;
-for k:=0 to number_usvs-1 do
-  begin del_code(k):=-1; setintone(eqtb[del_code_base+k],-1); end;
-del_code("."):=0; {this null delimiter is used in error recovery}
-setintone(eqtb[del_code_base+"."],0);
+
+@ @<Initialize parameters which are stored in a sparse tree @>=
+init_int_sa_element(del_code_sa*number_usvs+".")(1); { This means |del_code("."):=0| }
+init_int_sa_element(del_code1_sa*number_usvs+".")(0); { |del_code1("."):=0| }
+  {this null delimiter is used in error recovery}
 
 @ The following procedure, which is called just before \TeX\ initializes its
 input and output, establishes the initial values of the date and time.
@@ -30064,6 +30067,8 @@ def_family: print_size(chr_code-math_font_base);
 @ The different types of code values have different legal ranges; the
 following program is careful to check each case properly.
 
+@d set_del_code(#)==set_del_code_real(#,global)
+
 @<Assignments@>=
 XeTeX_def_code: begin
     if cur_chr = xetex_char_class_base then begin
@@ -30090,22 +30095,20 @@ XeTeX_def_code: begin
       define(p,data,hi(n));
     end
     else if cur_chr = del_code_base then begin
-      p:=cur_chr; scan_usv_num;
-      p:=p+cur_val;
+      scan_usv_num; p:=cur_val;
       scan_optional_equals;
       scan_int; {|scan_xetex_del_code_int|; !!FIXME!!}
-      del_word_define(p,cur_val mod @"40000000, 0);
+      set_del_code(p, cur_val mod @"40000000, 0);
     end else begin
-      p:=cur_chr-1; scan_usv_num;
-      p:=p+cur_val;
+      scan_usv_num; p:=cur_val;
       scan_optional_equals;
       scan_math_fam_int;   n:=cur_val * @"200000; {extended delimiter code family}
       scan_usv_num;        n:=n + cur_val; {extended delimiter code USV}
-      del_word_define(p,n, 0);
+      set_del_code(p, n, 0);
     end;
   end;
 def_code: if cur_chr=del_code_base+2 then begin {\.{\\odelcode}}
-  p:=cur_chr-2; scan_usv_num; p:=p+cur_val; scan_optional_equals;
+  scan_usv_num; p:=cur_val; scan_optional_equals;
   scan_int; cur_val1:=cur_val; scan_int; {backwards}
   if (cur_val1>@"7FFFFFF) or (cur_val>@"FFFFFF) then
     begin print_err("Invalid code ("); print_int(cur_val1); print(" ");
@@ -30118,7 +30121,7 @@ def_code: if cur_chr=del_code_base+2 then begin {\.{\\odelcode}}
     cur_val1:=(cur_val1 div @"10000)*@"200000+(cur_val1 mod @"10000);
     cur_val:=(cur_val div @"10000)*@"200000+(cur_val mod @"10000);
   end else cur_val:=0;
-  del_word_define(p,cur_val1,cur_val);
+  set_del_code(p,cur_val1,cur_val);
 end else begin 
   @<Let |n| be the largest legal code value, based on |cur_chr|@>;
   p:=cur_chr; cur_val1:=p; scan_usv_num; p:=p+cur_val; scan_optional_equals;
@@ -30152,8 +30155,8 @@ end else begin
         cur_val1:=cur_val div @"1000;
         cur_val1:=(cur_val1 div @"100)*@"200000 + cur_val1 mod @"100;
         cur_val:=((cur_val div @"100) mod 16)*@"200000 + cur_val mod @"100;
-        del_word_define(p,cur_val1,cur_val); end
-      else del_word_define(p, cur_val, 0);
+        set_del_code(p-del_code_base, cur_val1,cur_val); end
+      else set_del_code(p-del_code_base, cur_val, 0);
       end;
     othercases define(p,data,cur_val);
   end;
@@ -35923,6 +35926,14 @@ function get_int_sa_element(@!n:halfword;@!d:integer):integer;
 begin find_sa_element(int_val, n, false);
 if cur_ptr=null then get_int_sa_element:=d
 else get_int_sa_element:=sa_int(cur_ptr)+d;
+end;
+
+procedure set_del_code_real(@!c:integer;@!w:integer;@!wa:integer;@!g:boolean);
+begin c:=del_code_sa*number_usvs+c;
+find_sa_element(int_val, c, true);  
+if g then gsa_w_def(cur_ptr,w+1)@+else sa_w_def(cur_ptr, w+1);
+find_sa_element(int_val, c+number_usvs, true);  
+if g then gsa_w_def(cur_ptr,wa)@+else sa_w_def(cur_ptr, wa);
 end;
 
 @ The array elements for registers are subject to grouping and have an

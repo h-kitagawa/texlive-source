@@ -29,6 +29,13 @@
 @d int_pars=55 {total number of integer parameters}
 @z
 
+@x [17.240]
+for k:=int_base to dimen_base-1 do eqtb[k].int:=0;
+@y
+for k:=int_base to del_code_base-1 do eqtb[k].int:=0;
+del_code("."):=0; {this null delimiter is used in error recovery}
+@z
+
 @x [36.749] l.14638 - MLTeX: avoid substitution in |make_op|
       begin c:=rem_byte(cur_i); i:=char_info(cur_f)(c);
 @y
