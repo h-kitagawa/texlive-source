@@ -2,14 +2,14 @@
 
 --[[
 
-File l3build.lua Copyright (C) 2014-2022 The LaTeX Project
+File l3build.lua Copyright (C) 2014-2024 The LaTeX Project
 
 It may be distributed and/or modified under the conditions of the
 LaTeX Project Public License (LPPL), either version 1.3c of this
 license or (at your option) any later version.  The latest version
 of this license is in the file
 
-   http://www.latex-project.org/lppl.txt
+   https://www.latex-project.org/lppl.txt
 
 This file is part of the "l3build bundle" (The Work in LPPL)
 and all files in that bundle must be distributed together.
@@ -25,14 +25,13 @@ for those people who are interested.
 --]]
 
 -- Version information
-release_date = "2023-11-01"
+release_date = "2024-01-09"
 
 -- File operations are aided by the LuaFileSystem module
 local lfs = require("lfs")
 
 -- Local access to functions
 
-local assert           = assert
 local ipairs           = ipairs
 local insert           = table.insert
 local lookup           = kpse.lookup
@@ -40,11 +39,8 @@ local match            = string.match
 local gsub             = string.gsub
 local next             = next
 local print            = print
-local select           = select
-local tonumber         = tonumber
 local exit             = os.exit
 local open             = io.open
-local stdout           = io.stdout
 
 -- l3build setup and functions
 kpse.set_program_name("kpsewhich")
@@ -165,16 +161,7 @@ if #checkconfigs > 1 then
     end
     if next(failed) then
       for _,config in ipairs(failed) do
-        print("Failed tests for configuration \"" .. config .. "\":")
-        print("\n  Check failed with difference files")
-        local testdir = testdir
-        if config ~= "build" then
-          testdir = testdir .. "-" .. config
-        end
-        for _,i in ipairs(ordered_filelist(testdir,"*" .. os_diffext)) do
-          print("  - " .. testdir .. "/" .. i)
-        end
-        print("")
+        checkdiff(config)
       end
       if options["show-saves"] then
         local savecmds, recheckcmds = "", ""
@@ -190,18 +177,18 @@ if #checkconfigs > 1 then
             exit(2)
           end
           for line in f:lines() do
-             if line == "" then break end
-             savecmds = savecmds .. "  " .. line .. "\n"
+            if line == "" then break end
+            savecmds = savecmds .. "  " .. line .. "\n"
           end
           for line in f:lines() do
-             recheckcmds = recheckcmds .. "  " .. line .. "\n"
+            recheckcmds = recheckcmds .. "  " .. line .. "\n"
           end
           f:close()
         end
         print"To regenerate the test files, run\n"
         print(savecmds)
-        if recheckcmds ~= "" then
-          print"To detect engine specific differences, run after that\n"
+        if recheckcmds ~= "" and #checkengines ~= 1 then
+          print"To detect engine-specific differences, run after that\n"
           print(recheckcmds)
         end
       end
