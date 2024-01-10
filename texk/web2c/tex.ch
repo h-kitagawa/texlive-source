@@ -1571,6 +1571,15 @@ if_eof_code: begin scan_four_bit_int_or_18;
   end;
 @z
 
+@x [28.???] end_write token and \ifx
+else if cur_cmd<call then b:=(cur_chr=q)
+else @<Test if two macro texts match@>;
+@y
+else if cur_cmd<call then b:=(cur_chr=q)
+else if (n=end_write)or(cur_cs=end_write) then b:=false
+else @<Test if two macro texts match@>;
+@z
+
 @x [29.513] l.9951 - Area and extension rules for filenames.
 @ The file names we shall deal with for illustrative purposes have the
 following structure:  If the name contains `\.>' or `\.:', the file area

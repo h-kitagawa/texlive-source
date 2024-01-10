@@ -3050,7 +3050,7 @@ outer_call: print_esc("outer macro");
 long_outer_call: begin print_esc("long"); print_esc("outer macro");
 @y
 call,long_call,outer_call,long_outer_call: begin n:=cmd-call;
-  if info(link(chr_code))=protected_token then n:=n+4;
+  if chr_code<>null then if info(link(chr_code))=protected_token then n:=n+4;
   if odd(n div 4) then print_esc("protected");
   if odd(n) then print_esc("long");
   if odd(n div 2) then print_esc("outer");
