@@ -3,6 +3,14 @@
 % xetex.web and ../tex.ch
 % Public domain.
 
+@x
+@!trick_buf:array[0..error_line] of UnicodeScalar; {circular buffer for
+  pseudoprinting}
+@y
+@!trick_buf:array[0..error_line] of ASCII_code; {circular buffer for
+  pseudoprinting}
+@z
+
 @x [8.110] l.2422 - increase |max_halfword|
 @d min_halfword==-@"FFFFFFF {smallest allowable value in a |halfword|}
 @d max_halfword==@"3FFFFFFF {largest allowable value in a |halfword|}

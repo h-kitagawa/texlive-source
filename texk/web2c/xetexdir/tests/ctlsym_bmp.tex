@@ -1,0 +1,27 @@
+\scrollmode
+
+\count1000=0 \relax
+\count1000=`𢰤 \relax
+\message{X: \the\count1000. 𢰤}
+\count1000=0
+
+\def\🍌{foo}
+\def\𝕯{bar}
+\count1000=`🍌 \relax
+\message{A: \the\count1000}
+\count1000=0 \relax
+\count1000=`\🍌 \relax
+\message{B: \the\count1000. 🍌\string\🍌 \🍌}
+
+\count1000=0 \relax
+\count1000=`𝕯 \relax
+\message{C: \the\count1000}
+\count1000=0
+\count1000=`\𝕯 \relax
+\message{D: \the\count1000. 𝕯 \string\𝕯  \𝕯}
+
+\message{\expandafter\meaning\csname 🍌\endcsname.}
+\message{\expandafter\meaning\csname \Uchar"1F34C\endcsname.}
+
+\bye
+
